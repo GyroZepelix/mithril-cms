@@ -2,21 +2,19 @@ package routes
 
 import (
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func NewRouter() http.Handler {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.HandleFunc("/api/content", contentHandler)
+	r.Route("/api", func(r chi.Router) {
+		r.Get("/content", getContentHandler)
+		r.Post("/content", postContentHandler)
 
-	return mux
-}
+		r.Get("/contents", getContentsHandler)
+	})
 
-func contentHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		handleGetContent(w, r)
-	case http.MethodPost:
-		handlePostContent(w, r)
-	}
+	return r
 }
