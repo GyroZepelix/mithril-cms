@@ -7,3 +7,4 @@ sql:
       go:
         package: persistence
         out: "internal/storage/persistence"
+        emit_json_tags: true

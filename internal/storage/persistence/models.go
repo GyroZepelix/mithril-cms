@@ -10,34 +10,34 @@ import (
 )
 
 type Category struct {
-	ID        int32
-	Name      string
-	Slug      string
-	CreatedAt time.Time
+	ID        int32     `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Post struct {
-	ID          int32
-	Title       string
-	Content     string
-	AuthorID    int32
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	PublishedAt sql.NullTime
+	ID          int32        `json:"id"`
+	Title       string       `json:"title"`
+	Content     string       `json:"content"`
+	AuthorID    int32        `json:"author_id"`
+	Status      string       `json:"status"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	PublishedAt sql.NullTime `json:"published_at"`
 }
 
 type PostCategory struct {
-	PostID     int32
-	CategoryID int32
+	PostID     int32 `json:"post_id"`
+	CategoryID int32 `json:"category_id"`
 }
 
 type User struct {
-	ID        int32
-	Username  string
-	Email     string
-	Password  string
-	Role      string
-	CreatedAt time.Time
-	Posts     []int32
+	ID        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	Posts     []int32   `json:"posts"`
 }
