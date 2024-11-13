@@ -10,9 +10,12 @@ func NewRouter() http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/api", func(r chi.Router) {
-		r.Get("/content", getContentHandler)
-		r.Post("/content", postContentHandler)
-		r.Get("/contents", getContentsHandler)
+		r.Get("/content", handleGetContent)
+		r.Post("/content", handlePostContent)
+		r.Get("/contents", handleListContents)
+
+		r.Get("/users", handleListUsers)
+		r.Get("/user", handleGetUser)
 	})
 
 	return r

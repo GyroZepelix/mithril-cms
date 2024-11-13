@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE users (
     posts INT[]
 );
 
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -20,14 +20,14 @@ CREATE TABLE posts (
     FOREIGN KEY (author_id) REFERENCES users(id)
 );
 
-CREATE TABLE post (
+CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE post_categories (
+CREATE TABLE IF NOT EXISTS post_categories (
     post_id INT NOT NULL,
     category_id INT NOT NULL,
     PRIMARY KEY (post_id, category_id),
