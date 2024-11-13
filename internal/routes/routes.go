@@ -12,7 +12,6 @@ func NewRouter() http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/content", getContentHandler)
 		r.Post("/content", postContentHandler)
-
 		r.Get("/contents", getContentsHandler)
 	})
 

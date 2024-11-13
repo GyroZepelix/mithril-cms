@@ -1,0 +1,9 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/constant/query"
+    schema: "db/migration/"
+    gen:
+      go:
+        package: persistence
+        out: "internal/storage/persistence"
