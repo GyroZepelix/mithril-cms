@@ -15,12 +15,18 @@ func NewRouter(e *Env) http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/api", func(r chi.Router) {
-		r.Get("/content", e.handleGetContent)
-		r.Post("/content", e.handlePostContent)
-		r.Get("/contents", e.handleListContents)
 
-		r.Get("/users", e.handleListUsers)
-		r.Get("/user", e.handleGetUser)
+		r.Route("/contents", func(r chi.Router) {
+			r.Get("/", e.handleListContents)
+			r.Get("/{id}", e.handleGetContent)
+			r.Post("/", e.handlePostContent)
+		})
+
+		r.Route("/users", func(r chi.Router) {
+			r.Get("/", e.handleListUsers)
+			r.Get("/{id}", e.handleGetUser)
+		})
+
 	})
 
 	return r
