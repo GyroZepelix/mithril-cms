@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/routes"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	connStr := "postgres://mithril:S3cret@localhost:5432/mithrildb?sslmode=disable"
+	logging.Init(os.Stdout)
 
+	connStr := "postgres://mithril:S3cret@localhost:5432/mithrildb?sslmode=disable"
 	db := connectDB(connStr)
 	defer db.Close()
 
