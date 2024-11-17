@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/GyroZepelix/mithril-cms/internal/handlers"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
-	"github.com/GyroZepelix/mithril-cms/internal/routes"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	_ "github.com/lib/pq"
 )
@@ -20,10 +20,10 @@ func main() {
 	db := connectDB(connStr)
 	defer db.Close()
 
-	env := &routes.Env{
+	env := &handlers.Env{
 		DB: persistence.New(db),
 	}
-	router := routes.NewRouter(env)
+	router := handlers.NewRouter(env)
 
 	port := 8080
 	addr := fmt.Sprintf(":%d", port)
