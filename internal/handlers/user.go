@@ -25,9 +25,11 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			handleNotFound(w, err)
+			return
 		default:
 			handleInternalServerError(w, err)
 			logging.Error("User couldnt be fetched: ", err)
+			return
 		}
 	}
 
