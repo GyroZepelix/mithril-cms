@@ -3,12 +3,13 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/GyroZepelix/mithril-cms/internal/logic/user"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	"github.com/go-chi/chi/v5"
 )
 
 type Env struct {
-	DB *persistence.Queries
+	UserManager *user.Manager
 }
 
 func NewRouter(e *Env) http.Handler {

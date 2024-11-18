@@ -20,7 +20,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := e.DB.GetUser(r.Context(), int32(userId))
+	user, err := e.UserManager.GetUser(int32(userId), r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -37,7 +37,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := e.DB.ListUsers(r.Context())
+	users, err := e.UserManager.ListUsers(r.Context())
 	if err != nil {
 		handleInternalServerError(w, err)
 	}
