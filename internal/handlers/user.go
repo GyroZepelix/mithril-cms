@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
+	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -16,7 +17,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.ParseInt(userIdParam, 10, 32)
 	if err != nil {
 		logging.Errorf("Couldnt convert id %s to integer: %s", userIdParam, err)
-		handleBadRequest(w, err)
+		handleBadRequest(w, "Invalid user ID format")
 		return
 	}
 
@@ -24,11 +25,11 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, userLogic.ErrNotFound):
-			handleNotFound(w, err)
+			handleNotFound(w, "User not found")
 			return
 		default:
-			handleInternalServerError(w, err)
 			logging.Error("User couldnt be fetched: ", err)
+			handleInternalServerError(w, msgInternalServerError)
 			return
 		}
 	}
@@ -39,7 +40,9 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := e.UserManager.ListUsers(r.Context())
 	if err != nil {
-		handleInternalServerError(w, err)
+		logging.Error("User couldn't be fetched: ", err)
+		handleInternalServerError(w, msgInternalServerError)
+		return
 	}
 
 	handleJsonResponse(w, users)
