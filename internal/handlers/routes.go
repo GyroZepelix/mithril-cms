@@ -3,13 +3,12 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/GyroZepelix/mithril-cms/internal/logic/user"
-	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
+	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
 	"github.com/go-chi/chi/v5"
 )
 
 type Env struct {
-	UserManager *user.Manager
+	UserManager *userLogic.Manager
 }
 
 func NewRouter(e *Env) http.Handler {

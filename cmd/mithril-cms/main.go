@@ -9,7 +9,7 @@ import (
 
 	"github.com/GyroZepelix/mithril-cms/internal/handlers"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
-	"github.com/GyroZepelix/mithril-cms/internal/logic/user"
+	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	_ "github.com/lib/pq"
 )
@@ -23,7 +23,7 @@ func main() {
 
 	queries := persistence.New(db)
 	env := &handlers.Env{
-		UserManager: user.Manager.New(queries),
+		UserManager: userLogic.NewManager(queries),
 	}
 	router := handlers.NewRouter(env)
 

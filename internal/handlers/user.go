@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
+	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -23,7 +23,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := e.UserManager.GetUser(int32(userId), r.Context())
 	if err != nil {
 		switch {
-		case errors.Is(err, sql.ErrNoRows):
+		case errors.Is(err, userLogic.ErrNotFound):
 			handleNotFound(w, err)
 			return
 		default:
