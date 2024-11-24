@@ -8,7 +8,7 @@ import (
 
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
-	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
+	"github.com/GyroZepelix/mithril-cms/internal/validation"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -48,6 +48,30 @@ func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	handleJsonResponse(w, users)
 }
 
+type postUserRequest struct {
+	Username string `json:"username" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
 func (e Env) handlePostUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "post")
+	var user postUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		handleBadRequest(w, "User could not be deserialised")
+		return
+	}
+	if err := e.Validator.Struct(user); err != nil {
+		handleBadRequest(w, validation.ParseHttpErrorMessage(err))
+		return
+	}
+
+	// if err := validator.Validate(user); err != nil {
+	// 	var validatorError validator.ErrValidateError
+	// 	if errors.As(err, &validatorError) {
+	// 		handleBadRequest(w, validatorError)
+	// 	}
+	// 	return
+	// }
+
+	handleJsonResponse(w, user)
 }

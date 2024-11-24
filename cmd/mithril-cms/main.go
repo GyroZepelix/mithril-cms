@@ -11,6 +11,7 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
+	"github.com/go-playground/validator/v10"
 	_ "github.com/lib/pq"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	queries := persistence.New(db)
 	env := &handlers.Env{
 		UserManager: userLogic.NewManager(queries),
+		Validator:   validator.New(validator.WithRequiredStructEnabled()),
 	}
 	router := handlers.NewRouter(env)
 
