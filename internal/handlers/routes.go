@@ -3,13 +3,13 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/GyroZepelix/mithril-cms/internal/logic/userLogic"
+	"github.com/GyroZepelix/mithril-cms/internal/service/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
 type Env struct {
-	UserManager *userLogic.Manager
+	UserManager *user.Manager
 	Validator   *validator.Validate
 }
 

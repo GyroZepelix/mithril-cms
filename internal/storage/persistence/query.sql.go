@@ -11,6 +11,38 @@ import (
 	"github.com/lib/pq"
 )
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    username, 
+    email, 
+    password
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, username, email, password, role, created_at, posts
+`
+
+type CreateUserParams struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.Email, arg.Password)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.Role,
+		&i.CreatedAt,
+		pq.Array(&i.Posts),
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, username, email, password, role, created_at, posts FROM users
 WHERE id = $1 LIMIT 1
