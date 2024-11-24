@@ -21,11 +21,11 @@ func handleJsonResponse(w http.ResponseWriter, v any) {
 }
 
 type ResponseError struct {
-	StatusCode int    `json:"status_code"`
-	Error      string `json:"error"`
+	StatusCode int `json:"status_code"`
+	Error      any `json:"error"`
 }
 
-func handleGenericError(w http.ResponseWriter, clientErrorMessage string, statusCode int) {
+func handleGenericError(w http.ResponseWriter, clientErrorMessage any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
@@ -40,14 +40,14 @@ func handleGenericError(w http.ResponseWriter, clientErrorMessage string, status
 	}
 }
 
-func handleInternalServerError(w http.ResponseWriter, clientErrorMessage string) {
+func handleInternalServerError(w http.ResponseWriter, clientErrorMessage any) {
 	handleGenericError(w, clientErrorMessage, http.StatusInternalServerError)
 }
 
-func handleBadRequest(w http.ResponseWriter, clientErrorMessage string) {
+func handleBadRequest(w http.ResponseWriter, clientErrorMessage any) {
 	handleGenericError(w, clientErrorMessage, http.StatusBadRequest)
 }
 
-func handleNotFound(w http.ResponseWriter, clientErrorMessage string) {
+func handleNotFound(w http.ResponseWriter, clientErrorMessage any) {
 	handleGenericError(w, clientErrorMessage, http.StatusNotFound)
 }
