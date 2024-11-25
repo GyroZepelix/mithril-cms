@@ -18,6 +18,9 @@ func NewRouter(e *Env) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 
+		r.Get("/login", e.handleLoginUser)
+		r.Get("/register", e.handleRegisterUser)
+
 		r.Route("/contents", func(r chi.Router) {
 			r.Get("/", e.handleListContents)
 			r.Get("/{id}", e.handleGetContent)
@@ -27,7 +30,7 @@ func NewRouter(e *Env) http.Handler {
 		r.Route("/users", func(r chi.Router) {
 			r.Get("/", e.handleListUsers)
 			r.Get("/{id}", e.handleGetUser)
-			r.Post("/", e.handlePostUser)
+			// r.Post("/", e.handlePostUser)
 		})
 
 	})

@@ -51,3 +51,7 @@ func handleBadRequest(w http.ResponseWriter, clientErrorMessage any) {
 func handleNotFound(w http.ResponseWriter, clientErrorMessage any) {
 	handleGenericError(w, clientErrorMessage, http.StatusNotFound)
 }
+
+func handleUnauthorized(w http.ResponseWriter, clientErrorMessage any) {
+	handleGenericError(w, clientErrorMessage, http.StatusUnauthorized)
+}

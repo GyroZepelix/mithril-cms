@@ -48,31 +48,31 @@ func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	handleJsonResponse(w, users)
 }
 
-func (e Env) handlePostUser(w http.ResponseWriter, r *http.Request) {
-	var userParams struct {
+func (e Env) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
+	var registerParams struct {
 		Username string `json:"username" validate:"required"`
 		Email    string `json:"email" validate:"required,email"`
 		Password string `json:"password" validate:"required"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&registerParams); err != nil {
 		handleBadRequest(w, "User could not be deserialised")
 		return
 	}
-	if err := e.Validator.Struct(userParams); err != nil {
+	if err := e.Validator.Struct(registerParams); err != nil {
 		handleBadRequest(w, errs.MapValidationError(err))
 		return
 	}
 
-	hashedPassword, err := auth.HashPassword(userParams.Password)
+	hashedPassword, err := auth.HashPassword(registerParams.Password)
 	if err != nil {
 		logging.Error("Error hashing a password while creating a User: ", err)
 		handleInternalServerError(w, msgInternalServerError)
 		return
 	}
-	createdUser, err := e.UserManager.CreateUser(
-		userParams.Username,
-		userParams.Email,
+	registeredUser, err := e.UserManager.CreateUser(
+		registerParams.Username,
+		registerParams.Email,
 		hashedPassword,
 		r.Context(),
 	)
@@ -81,10 +81,46 @@ func (e Env) handlePostUser(w http.ResponseWriter, r *http.Request) {
 			handleBadRequest(w, error)
 			return
 		}
-		logging.Errorf("Error encountered creating a User: %v\nErr: %s", userParams, err)
+		logging.Errorf("Error encountered creating a User: %v\nErr: %s", registerParams, err)
 		handleInternalServerError(w, msgInternalServerError)
 		return
 	}
 
-	handleJsonResponse(w, createdUser)
+	handleJsonResponse(w, registeredUser)
+}
+
+var loginErrorMessage string = "Username or password not found!"
+
+func (e Env) handleLoginUser(w http.ResponseWriter, r *http.Request) {
+	var loginParams struct {
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required"`
+	}
+	loginParams.Username = r.URL.Query().Get("username")
+	loginParams.Password = r.URL.Query().Get("password")
+	if err := e.Validator.Struct(loginParams); err != nil {
+		handleBadRequest(w, errs.MapValidationError(err))
+		return
+	}
+
+	userData, err := e.UserManager.GetUserByUsername(loginParams.Username, r.Context())
+	if err != nil {
+		switch {
+		case errors.Is(err, errs.ErrNotFound):
+			handleUnauthorized(w, loginErrorMessage)
+			return
+		default:
+			logging.Error("User couldnt be fetched: ", err)
+			handleInternalServerError(w, msgInternalServerError)
+			return
+		}
+	}
+
+	logging.Info(userData)
+	if auth.CheckPasswordHash(loginParams.Password, userData.Password) {
+		handleJsonResponse(w, "succesful login!")
+	} else {
+		handleUnauthorized(w, loginErrorMessage)
+	}
+
 }

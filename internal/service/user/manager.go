@@ -33,6 +33,19 @@ func (m *Manager) GetUser(userId int32, ctx context.Context) (persistence.User, 
 	return user, nil
 }
 
+func (m *Manager) GetUserByUsername(username string, ctx context.Context) (persistence.User, error) {
+	user, err := m.DB.GetUserByUsername(ctx, username)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return persistence.User{}, errs.ErrNotFound
+		default:
+			return persistence.User{}, errors.Join(err, errs.ErrInternalServer)
+		}
+	}
+	return user, nil
+}
+
 func (m *Manager) ListUsers(ctx context.Context) ([]persistence.User, error) {
 	users, err := m.DB.ListUsers(ctx)
 	if err != nil {
