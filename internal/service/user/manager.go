@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
-	"github.com/lib/pq"
 )
 
 type Manager struct {
@@ -25,9 +25,9 @@ func (m *Manager) GetUser(userId int32, ctx context.Context) (persistence.User, 
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return persistence.User{}, ErrNotFound
+			return persistence.User{}, errs.ErrNotFound
 		default:
-			return persistence.User{}, errors.Join(err, ErrInternalServer)
+			return persistence.User{}, errors.Join(err, errs.ErrInternalServer)
 		}
 	}
 	return user, nil
@@ -48,17 +48,7 @@ func (m *Manager) CreateUser(username, email, password string, ctx context.Conte
 		Password: password,
 	})
 	if err != nil {
-		//TODO: Should be extracted to a method that handles this
-		if pqErr, ok := err.(*pq.Error); ok {
-			switch pqErr.Code {
-			case "23505": // unique_violation
-				return nil, &ErrUniqueValueViolation{
-					Field: pqErr.Constraint,
-					Value: pqErr.Detail,
-				}
-			}
-		}
-		return nil, err
+		return nil, errs.MapPostgresError(err)
 	}
 	logging.Infof("User created - Id: %d Username: %s Email: %s",
 		createdUser.ID,

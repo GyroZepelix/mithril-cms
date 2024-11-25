@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
-	"github.com/GyroZepelix/mithril-cms/internal/service/user"
-	"github.com/GyroZepelix/mithril-cms/internal/service/validation"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,7 +24,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	userData, err := e.UserManager.GetUser(int32(userId), r.Context())
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrNotFound):
+		case errors.Is(err, errs.ErrNotFound):
 			handleNotFound(w, "User not found")
 			return
 		default:
@@ -61,7 +60,7 @@ func (e Env) handlePostUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := e.Validator.Struct(userParams); err != nil {
-		handleBadRequest(w, validation.ParseHttpErrorMessage(err))
+		handleBadRequest(w, errs.MapValidationError(err))
 		return
 	}
 
@@ -78,7 +77,7 @@ func (e Env) handlePostUser(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 	)
 	if err != nil {
-		if error, ok := err.(*user.ErrUniqueValueViolation); ok {
+		if error, ok := err.(*errs.ErrUniqueValueViolation); ok {
 			handleBadRequest(w, error)
 			return
 		}

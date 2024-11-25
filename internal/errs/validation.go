@@ -1,4 +1,4 @@
-package validation
+package errs
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type ValidationIssue struct {
 	Msg   string `json:"msg"`
 }
 
-func ParseHttpErrorMessage(err error) ValidationError {
+func MapValidationError(err error) ValidationError {
 	errors := err.(validator.ValidationErrors)
 	result := ValidationError{
 		Issues: []ValidationIssue{},
