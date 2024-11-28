@@ -119,8 +119,17 @@ func (e Env) handleLoginUser(w http.ResponseWriter, r *http.Request) {
 	logging.Info(userData)
 	if auth.CheckPasswordHash(loginParams.Password, userData.Password) {
 		handleJsonResponse(w, "succesful login!")
+		return
 	} else {
 		handleUnauthorized(w, loginErrorMessage)
+		return
 	}
 
+	var loginResponse struct {
+		Token string `json:"token"`
+	}
+
+	loginResponse.Token = "token-here"
+
+	handleJsonResponse(w, loginResponse)
 }
