@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/GyroZepelix/mithril-cms/internal/handlers"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/service/user"
@@ -18,20 +19,26 @@ import (
 func main() {
 	logging.Init(os.Stdout)
 
-	connStr := "postgres://mithril:S3cret@localhost:5432/mithrildb?sslmode=disable"
-	db := connectDB(connStr)
+	db := connectDB(
+		config.Envs.DBDriver,
+		config.Envs.DBUser,
+		config.Envs.DBPassword,
+		config.Envs.DBHost,
+		config.Envs.DBPort,
+		config.Envs.DBName,
+		config.Envs.DBFlags,
+	)
 	defer db.Close()
 
 	queries := persistence.New(db)
-	env := &handlers.Env{
+	env := &handlers.ServiceContext{
 		UserManager: user.NewManager(queries),
 		Validator:   validator.New(validator.WithRequiredStructEnabled()),
 	}
 	router := handlers.NewRouter(env)
 
-	port := 8080
-	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Server listening on http://localhost%s\n", addr)
+	addr := fmt.Sprintf("%s:%s", config.Envs.PublicHost, config.Envs.Port)
+	fmt.Printf("Server listening on %s\n", addr)
 
 	err := http.ListenAndServe(addr, router)
 	if err != nil {
@@ -39,7 +46,17 @@ func main() {
 	}
 }
 
-func connectDB(connectionString string) *sql.DB {
+func connectDB(dbdriver, dbuser, dbpassword, dbhost, dbport, dbname, dbflags string) *sql.DB {
+	connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?%s",
+		dbdriver,
+		dbuser,
+		dbpassword,
+		dbhost,
+		dbport,
+		dbname,
+		dbflags,
+	)
+
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)

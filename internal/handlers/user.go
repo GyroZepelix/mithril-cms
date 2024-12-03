@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
+func (s ServiceContext) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := chi.URLParam(r, "id")
 	userId, err := strconv.ParseInt(userIdParam, 10, 32)
 	if err != nil {
@@ -21,7 +21,7 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData, err := e.UserManager.GetUser(int32(userId), r.Context())
+	userData, err := s.UserManager.GetUser(int32(userId), r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrNotFound):
@@ -37,8 +37,8 @@ func (e Env) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	handleJsonResponse(w, userData)
 }
 
-func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := e.UserManager.ListUsers(r.Context())
+func (s ServiceContext) handleListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := s.UserManager.ListUsers(r.Context())
 	if err != nil {
 		logging.Error("User couldn't be fetched: ", err)
 		handleInternalServerError(w, msgInternalServerError)
@@ -48,7 +48,7 @@ func (e Env) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	handleJsonResponse(w, users)
 }
 
-func (e Env) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
+func (s ServiceContext) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 	var registerParams struct {
 		Username string `json:"username" validate:"required"`
 		Email    string `json:"email" validate:"required,email"`
@@ -59,7 +59,7 @@ func (e Env) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 		handleBadRequest(w, "User could not be deserialised")
 		return
 	}
-	if err := e.Validator.Struct(registerParams); err != nil {
+	if err := s.Validator.Struct(registerParams); err != nil {
 		handleBadRequest(w, errs.MapValidationError(err))
 		return
 	}
@@ -70,7 +70,7 @@ func (e Env) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 		handleInternalServerError(w, msgInternalServerError)
 		return
 	}
-	registeredUser, err := e.UserManager.CreateUser(
+	registeredUser, err := s.UserManager.CreateUser(
 		registerParams.Username,
 		registerParams.Email,
 		hashedPassword,
@@ -91,19 +91,19 @@ func (e Env) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 
 var loginErrorMessage string = "Username or password not found!"
 
-func (e Env) handleLoginUser(w http.ResponseWriter, r *http.Request) {
+func (s ServiceContext) handleLoginUser(w http.ResponseWriter, r *http.Request) {
 	var loginParams struct {
 		Username string `json:"username" validate:"required"`
 		Password string `json:"password" validate:"required"`
 	}
 	loginParams.Username = r.URL.Query().Get("username")
 	loginParams.Password = r.URL.Query().Get("password")
-	if err := e.Validator.Struct(loginParams); err != nil {
+	if err := s.Validator.Struct(loginParams); err != nil {
 		handleBadRequest(w, errs.MapValidationError(err))
 		return
 	}
 
-	userData, err := e.UserManager.GetUserByUsername(loginParams.Username, r.Context())
+	userData, err := s.UserManager.GetUserByUsername(loginParams.Username, r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrNotFound):
@@ -117,10 +117,7 @@ func (e Env) handleLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logging.Info(userData)
-	if auth.CheckPasswordHash(loginParams.Password, userData.Password) {
-		handleJsonResponse(w, "succesful login!")
-		return
-	} else {
+	if !auth.CheckPasswordHash(loginParams.Password, userData.Password) {
 		handleUnauthorized(w, loginErrorMessage)
 		return
 	}

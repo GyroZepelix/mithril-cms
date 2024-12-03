@@ -8,12 +8,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type Env struct {
+type ServiceContext struct {
 	UserManager *user.Manager
 	Validator   *validator.Validate
 }
 
-func NewRouter(e *Env) http.Handler {
+func NewRouter(e *ServiceContext) http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/api", func(r chi.Router) {
