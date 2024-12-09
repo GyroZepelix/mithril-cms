@@ -122,11 +122,16 @@ func (s ServiceContext) handleLoginUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	token, err := auth.CreateJWT(userData.ID, userData.Role)
+	if err != nil {
+		handleInternalServerError(w, msgInternalServerError)
+	}
+
 	var loginResponse struct {
 		Token string `json:"token"`
 	}
 
-	loginResponse.Token = "token-here"
+	loginResponse.Token = token
 
 	handleJsonResponse(w, loginResponse)
 }

@@ -13,23 +13,23 @@ type ServiceContext struct {
 	Validator   *validator.Validate
 }
 
-func NewRouter(e *ServiceContext) http.Handler {
+func NewRouter(s *ServiceContext) http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/api", func(r chi.Router) {
 
-		r.Get("/login", e.handleLoginUser)
-		r.Get("/register", e.handleRegisterUser)
+		r.Get("/login", s.handleLoginUser)
+		r.Get("/register", s.handleRegisterUser)
 
 		r.Route("/contents", func(r chi.Router) {
-			r.Get("/", e.handleListContents)
-			r.Get("/{id}", e.handleGetContent)
-			r.Post("/", e.handlePostContent)
+			r.Get("/", s.handleListContents)
+			r.Get("/{id}", s.handleGetContent)
+			r.Post("/", s.handlePostContent)
 		})
 
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/", e.handleListUsers)
-			r.Get("/{id}", e.handleGetUser)
+			r.Get("/", s.handleListUsers)
+			r.Get("/{id}", s.handleGetUser)
 			// r.Post("/", e.handlePostUser)
 		})
 
