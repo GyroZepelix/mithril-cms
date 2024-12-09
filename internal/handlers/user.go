@@ -8,6 +8,7 @@ import (
 
 	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
+	"github.com/GyroZepelix/mithril-cms/internal/response"
 	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 	"github.com/go-chi/chi/v5"
 )
@@ -17,7 +18,7 @@ func (s ServiceContext) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.ParseInt(userIdParam, 10, 32)
 	if err != nil {
 		logging.Errorf("Couldnt convert id %s to integer: %s", userIdParam, err)
-		handleBadRequest(w, "Invalid user ID format")
+		response.BadRequest(w, "Invalid user ID format")
 		return
 	}
 
@@ -25,27 +26,27 @@ func (s ServiceContext) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrNotFound):
-			handleNotFound(w, "User not found")
+			response.NotFound(w, "User not found")
 			return
 		default:
 			logging.Error("User couldnt be fetched: ", err)
-			handleInternalServerError(w, msgInternalServerError)
+			response.InternalServerError(w, response.MsgInternalServerError)
 			return
 		}
 	}
 
-	handleJsonResponse(w, userData)
+	response.JsonResponse(w, userData)
 }
 
 func (s ServiceContext) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := s.UserManager.ListUsers(r.Context())
 	if err != nil {
 		logging.Error("User couldn't be fetched: ", err)
-		handleInternalServerError(w, msgInternalServerError)
+		response.InternalServerError(w, response.MsgInternalServerError)
 		return
 	}
 
-	handleJsonResponse(w, users)
+	response.JsonResponse(w, users)
 }
 
 func (s ServiceContext) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -56,18 +57,18 @@ func (s ServiceContext) handleRegisterUser(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&registerParams); err != nil {
-		handleBadRequest(w, "User could not be deserialised")
+		response.BadRequest(w, "User could not be deserialised")
 		return
 	}
 	if err := s.Validator.Struct(registerParams); err != nil {
-		handleBadRequest(w, errs.MapValidationError(err))
+		response.BadRequest(w, errs.MapValidationError(err))
 		return
 	}
 
 	hashedPassword, err := auth.HashPassword(registerParams.Password)
 	if err != nil {
 		logging.Error("Error hashing a password while creating a User: ", err)
-		handleInternalServerError(w, msgInternalServerError)
+		response.InternalServerError(w, response.MsgInternalServerError)
 		return
 	}
 	registeredUser, err := s.UserManager.CreateUser(
@@ -78,15 +79,15 @@ func (s ServiceContext) handleRegisterUser(w http.ResponseWriter, r *http.Reques
 	)
 	if err != nil {
 		if error, ok := err.(*errs.ErrUniqueValueViolation); ok {
-			handleBadRequest(w, error)
+			response.BadRequest(w, error)
 			return
 		}
 		logging.Errorf("Error encountered creating a User: %v\nErr: %s", registerParams, err)
-		handleInternalServerError(w, msgInternalServerError)
+		response.InternalServerError(w, response.MsgInternalServerError)
 		return
 	}
 
-	handleJsonResponse(w, registeredUser)
+	response.JsonResponse(w, registeredUser)
 }
 
 var loginErrorMessage string = "Username or password not found!"
@@ -99,7 +100,7 @@ func (s ServiceContext) handleLoginUser(w http.ResponseWriter, r *http.Request) 
 	loginParams.Username = r.URL.Query().Get("username")
 	loginParams.Password = r.URL.Query().Get("password")
 	if err := s.Validator.Struct(loginParams); err != nil {
-		handleBadRequest(w, errs.MapValidationError(err))
+		response.BadRequest(w, errs.MapValidationError(err))
 		return
 	}
 
@@ -107,24 +108,24 @@ func (s ServiceContext) handleLoginUser(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrNotFound):
-			handleUnauthorized(w, loginErrorMessage)
+			response.Unauthorized(w, loginErrorMessage)
 			return
 		default:
 			logging.Error("User couldnt be fetched: ", err)
-			handleInternalServerError(w, msgInternalServerError)
+			response.InternalServerError(w, response.MsgInternalServerError)
 			return
 		}
 	}
 
 	logging.Info(userData)
 	if !auth.CheckPasswordHash(loginParams.Password, userData.Password) {
-		handleUnauthorized(w, loginErrorMessage)
+		response.Unauthorized(w, loginErrorMessage)
 		return
 	}
 
 	token, err := auth.CreateJWT(userData.ID, userData.Role)
 	if err != nil {
-		handleInternalServerError(w, msgInternalServerError)
+		response.InternalServerError(w, response.MsgInternalServerError)
 	}
 
 	var loginResponse struct {
@@ -133,5 +134,5 @@ func (s ServiceContext) handleLoginUser(w http.ResponseWriter, r *http.Request) 
 
 	loginResponse.Token = token
 
-	handleJsonResponse(w, loginResponse)
+	response.JsonResponse(w, loginResponse)
 }
