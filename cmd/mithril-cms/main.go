@@ -37,9 +37,8 @@ func main() {
 	}
 	router := handlers.NewRouter(env)
 
-	port := 8080
-	addr := fmt.Sprintf("%s:%d", port)
-	fmt.Printf("Server listening on http://localhost%s\n", addr)
+	addr := fmt.Sprintf("%s:%s", config.Envs.PublicHost, config.Envs.Port)
+	fmt.Printf("Server listening on %s\n", addr)
 
 	err := http.ListenAndServe(addr, router)
 	if err != nil {
