@@ -19,7 +19,7 @@ func NewRouter(s *ServiceContext) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 
 		r.Get("/login", s.handleLoginUser)
-		r.Get("/register", s.handleRegisterUser)
+		r.Post("/register", s.handleRegisterUser)
 
 		r.Route("/contents", func(r chi.Router) {
 			r.Get("/", s.handleListContents)
