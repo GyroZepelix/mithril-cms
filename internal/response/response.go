@@ -55,3 +55,7 @@ func NotFound(w http.ResponseWriter, clientErrorMessage any) {
 func Unauthorized(w http.ResponseWriter, clientErrorMessage any) {
 	GenericError(w, clientErrorMessage, http.StatusUnauthorized)
 }
+
+func Forbidden(w http.ResponseWriter, clientErrorMessage any) {
+	GenericError(w, clientErrorMessage, http.StatusForbidden)
+}

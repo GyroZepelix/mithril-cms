@@ -41,12 +41,12 @@ func TestCreateJWT(t *testing.T) {
 			t.Errorf("error extracting claims from token")
 		}
 
-		if actualUserId, ok := claims["userID"].(string); ok {
+		if actualUserId, ok := claims[auth.UserIdKey].(string); ok {
 			if i, err := strconv.Atoi(actualUserId); i != int(givenUserId) || err != nil {
-				t.Errorf("userID should be %d, but its %s", givenUserId, actualUserId)
+				t.Errorf("userId should be %d, but its %s", givenUserId, actualUserId)
 			}
 		} else {
-			t.Errorf("userID claim is missing or not a number")
+			t.Errorf("userId claim is missing or not a number")
 		}
 
 		if actualUserRole := claims["role"]; actualUserRole != givenUserRole {
