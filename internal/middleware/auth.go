@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/GyroZepelix/mithril-cms/internal/constant"
@@ -69,4 +70,55 @@ func getTokenFromRequest(r *http.Request) string {
 	}
 
 	return ""
+}
+
+type ResourceType string
+
+const (
+	ResourceTypePost    ResourceType = "post"
+	ResourceTypeComment ResourceType = "comment"
+	ResourceTypeUser    ResourceType = "user"
+)
+
+type Permission uint64
+
+const (
+	CanCreate Permission = iota
+	CanRead
+	CanUpdate
+	CanDelete
+	CanReadAll
+	CanUpdateAll
+	CanDeleteAll
+)
+
+type AccessPermission struct {
+	resourceType ResourceType
+	permission   Permission
+}
+
+type PermissionManager struct {
+	registeredPermissions map[constant.UserRole][]AccessPermission
+}
+
+func NewPermissionManager() *PermissionManager {
+	return &PermissionManager{
+		registeredPermissions: make(map[constant.UserRole][]AccessPermission),
+	}
+}
+
+func (pm *PermissionManager) RegisterRole(role constant.UserRole, permissions ...AccessPermission) {
+	pm.registeredPermissions[role] = permissions
+}
+
+func (m PermissionManager) ValidatePermission(role constant.UserRole, permission AccessPermission) bool {
+	userPermissions := m.registeredPermissions[role]
+	if userPermissions == nil {
+		return false
+	}
+
+	if slices.Contains(userPermissions, permission) {
+		return true
+	}
+	return false
 }
