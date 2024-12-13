@@ -2,13 +2,11 @@ package auth
 
 import (
 	"testing"
-
-	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 )
 
 func TestHashPassword(t *testing.T) {
 	t.Parallel()
-	hash, err := auth.HashPassword("password")
+	hash, err := HashPassword("password")
 	if err != nil {
 		t.Errorf("error hashing password: %v", err)
 	}
@@ -24,7 +22,7 @@ func TestHashPassword(t *testing.T) {
 
 func TestCheckPasswordHash(t *testing.T) {
 	t.Parallel()
-	hash, err := auth.HashPassword("password")
+	hash, err := HashPassword("password")
 	if err != nil {
 		t.Errorf("error hashing password: %v", err)
 	}
@@ -32,7 +30,7 @@ func TestCheckPasswordHash(t *testing.T) {
 	t.Run("Should return true for correct password", func(t *testing.T) {
 		t.Parallel()
 		password := "password"
-		if !auth.CheckPasswordHash(password, hash) {
+		if !CheckPasswordHash(password, hash) {
 			t.Error("expected CheckPasswordHash to return true for correct password and hash")
 		}
 	})
@@ -40,7 +38,7 @@ func TestCheckPasswordHash(t *testing.T) {
 	t.Run("Should return false for incorrect password", func(t *testing.T) {
 		t.Parallel()
 		password := "12345678"
-		if auth.CheckPasswordHash(password, hash) {
+		if CheckPasswordHash(password, hash) {
 			t.Error("expected CheckPasswordHash to return false for incorrect password and hash")
 		}
 	})

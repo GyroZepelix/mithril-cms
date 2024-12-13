@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/GyroZepelix/mithril-cms/internal/config"
-	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -17,7 +16,7 @@ func TestCreateJWT(t *testing.T) {
 	var givenUserId int32 = 1
 	givenUserRole := "testrole"
 
-	token, err := auth.CreateJWT(givenUserId, givenUserRole)
+	token, err := CreateJWT(givenUserId, givenUserRole)
 	if err != nil {
 		t.Errorf("error creating JWT: %v", err)
 	}
@@ -41,7 +40,7 @@ func TestCreateJWT(t *testing.T) {
 			t.Errorf("error extracting claims from token")
 		}
 
-		if actualUserId, ok := claims[auth.UserIdKey].(string); ok {
+		if actualUserId, ok := claims[UserIdKey].(string); ok {
 			if i, err := strconv.Atoi(actualUserId); i != int(givenUserId) || err != nil {
 				t.Errorf("userId should be %d, but its %s", givenUserId, actualUserId)
 			}
