@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/GyroZepelix/mithril-cms/internal/constant"
 	"github.com/GyroZepelix/mithril-cms/internal/middleware"
 	"github.com/GyroZepelix/mithril-cms/internal/service/user"
 	"github.com/go-chi/chi/v5"
@@ -27,12 +26,9 @@ func NewRouter(s *ServiceContext) http.Handler {
 			r.Use(middleware.JWTAuth)
 
 			r.Get("/", s.handleListContents)
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RoleRequired(constant.UserRoleAdmin))
-				r.Get("/{id}", s.handleGetContent)
-				r.Post("/", s.handlePostContent)
-			})
+			r.Get("/{id}", s.handleGetContent)
+			r.Post("/", s.handlePostContent)
+			r.Put("{id}", s.handlePutContent)
 		})
 
 		r.Route("/users", func(r chi.Router) {

@@ -16,3 +16,7 @@ func (s ServiceContext) handleListContents(w http.ResponseWriter, r *http.Reques
 func (s ServiceContext) handlePostContent(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "post")
 }
+
+func (s ServiceContext) handlePutContent(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "put")
+}
