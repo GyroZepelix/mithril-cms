@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/GyroZepelix/mithril-cms/internal/constant"
@@ -16,24 +15,20 @@ const (
 	bearerPrefix string = "Bearer "
 )
 
-func RoleRequired(r constant.UserRole) func(http.Handler) http.Handler {
-	expectedRole := constant.UserRoleName[r]
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			actualRole := ctx.Value(auth.RoleKey)
-
-			if actualRole != expectedRole {
-				response.Forbidden(w, "Permission denied")
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
+// JWTAuth is a middleware function that performs JWT authentication.
+// It validates the JWT token from the request, extracts claims, and adds them to the request context.
+//
+// The middleware:
+// 1. Extracts the JWT token from the request.
+// 2. Validates the token.
+// 3. If invalid, responds with a "Forbidden" error.
+// 4. If valid, extracts user ID and role from claims.
+// 5. Adds user ID and role to the request context.
+// 6. Calls the next handler in the chain.
+//
+// Example usage:
+//
+//	http.Handle("/protected", JWTAuth(protectedHandler))
 func JWTAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := getTokenFromRequest(r)
@@ -51,17 +46,25 @@ func JWTAuth(next http.Handler) http.Handler {
 
 		claims := token.Claims.(jwt.MapClaims)
 		userID := claims[auth.UserIdKey]
-		role := claims[auth.RoleKey]
+		role := claims[auth.RoleKey].(string)
+		userRole := constant.UserRoleMap[role]
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, auth.UserIdKey, userID)
-		ctx = context.WithValue(ctx, auth.RoleKey, role)
+		ctx = context.WithValue(ctx, auth.RoleKey, userRole)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})
 }
 
+// getTokenFromRequest extracts the JWT token from the HTTP request's Authorization header.
+// It expects the token to be in the format "Bearer <token>".
+//
+// If the Authorization header is not present or doesn't have the correct prefix,
+// an empty string is returned.
+//
+// This function is intended for internal use by the JWTAuth middleware.
 func getTokenFromRequest(r *http.Request) string {
 	tokenAuth := r.Header.Get("Authorization")
 
@@ -70,55 +73,4 @@ func getTokenFromRequest(r *http.Request) string {
 	}
 
 	return ""
-}
-
-type ResourceType string
-
-const (
-	ResourceTypePost    ResourceType = "post"
-	ResourceTypeComment ResourceType = "comment"
-	ResourceTypeUser    ResourceType = "user"
-)
-
-type Permission uint64
-
-const (
-	CanCreate Permission = iota
-	CanRead
-	CanUpdate
-	CanDelete
-	CanReadAll
-	CanUpdateAll
-	CanDeleteAll
-)
-
-type AccessPermission struct {
-	resourceType ResourceType
-	permission   Permission
-}
-
-type PermissionManager struct {
-	registeredPermissions map[constant.UserRole][]AccessPermission
-}
-
-func NewPermissionManager() *PermissionManager {
-	return &PermissionManager{
-		registeredPermissions: make(map[constant.UserRole][]AccessPermission),
-	}
-}
-
-func (pm *PermissionManager) RegisterRole(role constant.UserRole, permissions ...AccessPermission) {
-	pm.registeredPermissions[role] = permissions
-}
-
-func (m PermissionManager) ValidatePermission(role constant.UserRole, permission AccessPermission) bool {
-	userPermissions := m.registeredPermissions[role]
-	if userPermissions == nil {
-		return false
-	}
-
-	if slices.Contains(userPermissions, permission) {
-		return true
-	}
-	return false
 }

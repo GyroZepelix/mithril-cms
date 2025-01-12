@@ -10,18 +10,25 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 )
 
-type Manager struct {
-	DB *persistence.Queries
+type Manager interface {
+	GetUser(userId int32, ctx context.Context) (persistence.User, error)
+	CreateUser(username, email, password string, ctx context.Context) (*persistence.User, error)
+	ListUsers(ctx context.Context) ([]persistence.User, error)
+	GetUserByUsername(username string, ctx context.Context) (persistence.User, error)
 }
 
-func NewManager(db *persistence.Queries) *Manager {
-	return &Manager{
-		DB: db,
+type UserManager struct {
+	db *persistence.Queries
+}
+
+func NewManager(db *persistence.Queries) Manager {
+	return &UserManager{
+		db: db,
 	}
 }
 
-func (m *Manager) GetUser(userId int32, ctx context.Context) (persistence.User, error) {
-	user, err := m.DB.GetUser(ctx, userId)
+func (m *UserManager) GetUser(userId int32, ctx context.Context) (persistence.User, error) {
+	user, err := m.db.GetUser(ctx, userId)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -33,8 +40,8 @@ func (m *Manager) GetUser(userId int32, ctx context.Context) (persistence.User, 
 	return user, nil
 }
 
-func (m *Manager) GetUserByUsername(username string, ctx context.Context) (persistence.User, error) {
-	user, err := m.DB.GetUserByUsername(ctx, username)
+func (m *UserManager) GetUserByUsername(username string, ctx context.Context) (persistence.User, error) {
+	user, err := m.db.GetUserByUsername(ctx, username)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -46,16 +53,16 @@ func (m *Manager) GetUserByUsername(username string, ctx context.Context) (persi
 	return user, nil
 }
 
-func (m *Manager) ListUsers(ctx context.Context) ([]persistence.User, error) {
-	users, err := m.DB.ListUsers(ctx)
+func (m *UserManager) ListUsers(ctx context.Context) ([]persistence.User, error) {
+	users, err := m.db.ListUsers(ctx)
 	if err != nil {
 		return []persistence.User{}, err
 	}
 	return users, nil
 }
 
-func (m *Manager) CreateUser(username, email, password string, ctx context.Context) (*persistence.User, error) {
-	createdUser, err := m.DB.CreateUser(ctx, persistence.CreateUserParams{
+func (m *UserManager) CreateUser(username, email, password string, ctx context.Context) (*persistence.User, error) {
+	createdUser, err := m.db.CreateUser(ctx, persistence.CreateUserParams{
 		Username: username,
 		Email:    email,
 		Password: password,

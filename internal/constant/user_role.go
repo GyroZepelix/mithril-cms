@@ -15,3 +15,10 @@ var UserRoleName = map[UserRole]string{
 	UserRoleEditor: "editor",
 	UserRoleAdmin:  "admin",
 }
+
+var UserRoleMap = map[string]UserRole{
+	"reader": UserRoleReader,
+	"author": UserRoleAuthor,
+	"editor": UserRoleEditor,
+	"admin":  UserRoleAdmin,
+}

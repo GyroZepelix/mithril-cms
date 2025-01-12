@@ -8,8 +8,13 @@ import (
 	"os"
 
 	"github.com/GyroZepelix/mithril-cms/internal/config"
+	"github.com/GyroZepelix/mithril-cms/internal/constant"
 	"github.com/GyroZepelix/mithril-cms/internal/handlers"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
+	"github.com/GyroZepelix/mithril-cms/internal/middleware"
+	"github.com/GyroZepelix/mithril-cms/internal/response"
+	"github.com/GyroZepelix/mithril-cms/internal/service/content"
+	"github.com/GyroZepelix/mithril-cms/internal/service/permission"
 	"github.com/GyroZepelix/mithril-cms/internal/service/user"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
 	"github.com/go-playground/validator/v10"
@@ -30,11 +35,7 @@ func main() {
 	)
 	defer db.Close()
 
-	queries := persistence.New(db)
-	env := &handlers.ServiceContext{
-		UserManager: user.NewManager(queries),
-		Validator:   validator.New(validator.WithRequiredStructEnabled()),
-	}
+	env := setupEnv(db)
 	router := handlers.NewRouter(env)
 
 	addr := fmt.Sprintf("%s:%s", config.Envs.PublicHost, config.Envs.Port)
@@ -67,4 +68,98 @@ func connectDB(dbdriver, dbuser, dbpassword, dbhost, dbport, dbname, dbflags str
 	}
 
 	return db
+}
+
+func setupEnv(db *sql.DB) *handlers.ServiceContext {
+	queries := persistence.New(db)
+
+	userManager := user.NewManager(queries)
+	contentManager := content.NewManager(queries)
+	ownershipChecker := permission.NewOwnershipChecker(contentManager)
+	unauthorizedResponse := func(w http.ResponseWriter) { response.Unauthorized(w, "Insufficient Permissions") }
+
+	permissionValidator := permission.NewPermissionValidator()
+	setupPermissions(permissionValidator)
+
+	return &handlers.ServiceContext{
+		UserManager:          userManager,
+		PermissionMiddleware: middleware.NewPermissionMiddleware("id", unauthorizedResponse, ownershipChecker, permissionValidator),
+		Validator:            validator.New(validator.WithRequiredStructEnabled()),
+	}
+}
+
+func setupPermissions(pm permission.PermissionValidator) {
+
+	readerPermissions := []permission.AccessPermission{
+		{
+			ResourceType:    permission.ResourceTypeUser,
+			Permission:      permission.CanRead,
+			PermissionLevel: permission.Owned,
+		},
+	}
+	authorPermissions := append(readerPermissions,
+		[]permission.AccessPermission{
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanRead,
+				PermissionLevel: permission.Owned,
+			},
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanCreate,
+				PermissionLevel: permission.Owned,
+			},
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanDelete,
+				PermissionLevel: permission.Owned,
+			},
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanUpdate,
+				PermissionLevel: permission.Owned,
+			},
+		}...,
+	)
+
+	adminPermissions := append(authorPermissions,
+		[]permission.AccessPermission{
+			// Users
+			{
+				ResourceType:    permission.ResourceTypeUser,
+				Permission:      permission.CanRead,
+				PermissionLevel: permission.All,
+			},
+			{
+				ResourceType:    permission.ResourceTypeUser,
+				Permission:      permission.CanDelete,
+				PermissionLevel: permission.All,
+			},
+			{
+				ResourceType:    permission.ResourceTypeUser,
+				Permission:      permission.CanUpdate,
+				PermissionLevel: permission.All,
+			},
+			// Posts
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanRead,
+				PermissionLevel: permission.All,
+			},
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanDelete,
+				PermissionLevel: permission.All,
+			},
+			{
+				ResourceType:    permission.ResourceTypePost,
+				Permission:      permission.CanUpdate,
+				PermissionLevel: permission.All,
+			},
+		}...,
+	)
+
+	pm.RegisterRole(constant.UserRoleReader, readerPermissions...)
+	pm.RegisterRole(constant.UserRoleAuthor, authorPermissions...)
+	pm.RegisterRole(constant.UserRoleAdmin, adminPermissions...)
 }

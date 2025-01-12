@@ -1,4 +1,4 @@
-package middleware
+package permission
 
 import (
 	"reflect"
@@ -12,14 +12,17 @@ func TestRegisterRole(t *testing.T) {
 		{
 			ResourceTypePost,
 			CanCreate,
+			Owned,
 		},
 		{
 			ResourceTypePost,
 			CanDelete,
+			Owned,
 		},
 		{
 			ResourceTypePost,
 			CanUpdate,
+			Owned,
 		},
 	}
 
@@ -27,12 +30,13 @@ func TestRegisterRole(t *testing.T) {
 		[]AccessPermission{
 			{
 				ResourceTypePost,
-				CanDeleteAll,
+				CanDelete,
+				All,
 			},
 		}...,
 	)
 
-	pm := NewPermissionManager()
+	pm := NewPermissionValidator()
 	pm.RegisterRole(constant.UserRoleAuthor, authorPermissions...)
 	pm.RegisterRole(constant.UserRoleAdmin, adminPermissions...)
 
@@ -50,14 +54,17 @@ func TestValidatePermission(t *testing.T) {
 		{
 			ResourceTypePost,
 			CanCreate,
+			Owned,
 		},
 		{
 			ResourceTypePost,
 			CanDelete,
+			Owned,
 		},
 		{
 			ResourceTypePost,
 			CanUpdate,
+			Owned,
 		},
 	}
 
@@ -65,12 +72,13 @@ func TestValidatePermission(t *testing.T) {
 		[]AccessPermission{
 			{
 				ResourceTypePost,
-				CanDeleteAll,
+				CanDelete,
+				All,
 			},
 		}...,
 	)
 
-	pm := NewPermissionManager()
+	pm := NewPermissionValidator()
 	pm.RegisterRole(constant.UserRoleAuthor, authorPermissions...)
 	pm.RegisterRole(constant.UserRoleAdmin, adminPermissions...)
 
@@ -79,6 +87,7 @@ func TestValidatePermission(t *testing.T) {
 		requiredPermissions := AccessPermission{
 			ResourceTypePost,
 			CanCreate,
+			Owned,
 		}
 
 		if pm.ValidatePermission(givenRole, requiredPermissions) == false {
@@ -90,7 +99,8 @@ func TestValidatePermission(t *testing.T) {
 		givenRole := constant.UserRoleAuthor
 		requiredPermissions := AccessPermission{
 			ResourceTypePost,
-			CanDeleteAll,
+			CanDelete,
+			All,
 		}
 
 		if pm.ValidatePermission(givenRole, requiredPermissions) == true {
@@ -102,7 +112,8 @@ func TestValidatePermission(t *testing.T) {
 		givenRole := constant.UserRoleAdmin
 		requiredPermissions := AccessPermission{
 			ResourceTypePost,
-			CanDeleteAll,
+			CanDelete,
+			All,
 		}
 
 		if pm.ValidatePermission(givenRole, requiredPermissions) == false {

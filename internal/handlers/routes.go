@@ -10,12 +10,14 @@ import (
 )
 
 type ServiceContext struct {
-	UserManager *user.Manager
-	Validator   *validator.Validate
+	UserManager          user.Manager
+	PermissionMiddleware middleware.PermissionMiddleware
+	Validator            *validator.Validate
 }
 
 func NewRouter(s *ServiceContext) http.Handler {
 	r := chi.NewRouter()
+	p := s.PermissionMiddleware
 
 	r.Route("/api", func(r chi.Router) {
 
@@ -28,12 +30,14 @@ func NewRouter(s *ServiceContext) http.Handler {
 			r.Get("/", s.handleListContents)
 			r.Get("/{id}", s.handleGetContent)
 			r.Post("/", s.handlePostContent)
-			r.Put("{id}", s.handlePutContent)
+			r.Put("/{id}", s.handlePutContent)
 		})
 
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/", s.handleListUsers)
-			r.Get("/{id}", s.handleGetUser)
+			r.Use(middleware.JWTAuth)
+
+			r.Get("/", p.RequirePermission(s.handleListUsers, readUserAll))
+			r.Get("/{id}", p.RequirePermission(s.handleGetUser, readUserAll, readUserOwned))
 			// r.Post("/", e.handlePostUser)
 		})
 

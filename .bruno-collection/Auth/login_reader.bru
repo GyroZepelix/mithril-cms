@@ -1,0 +1,24 @@
+meta {
+  name: login_reader
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/login?username=alice_brown&password=12345678
+  body: none
+  auth: none
+}
+
+params:query {
+  username: alice_brown
+  password: 12345678
+}
+
+script:post-response {
+  const token = res.body.token
+  
+  bru.setEnvVar("jwt_token", token);
+  
+  console.log("Token extracted and set as AUTH_TOKEN environment variable.");
+}
