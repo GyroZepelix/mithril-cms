@@ -22,6 +22,9 @@ migration-up:
 migration-down:
 	migrate -database ${POSTGRESQL_URL} -path db/migration down
 
+migration-drop:
+	migrate -database ${POSTGRESQL_URL} -path db/migration drop
+
 clean:
 	@rm -rf bin/
 
@@ -34,6 +37,7 @@ help:
 	@echo "  testsum-watch    - Run tests in watch mode"
 	@echo "  migration-up     - Run database migrations up"
 	@echo "  migration-down   - Run database migrations down"
+	@echo "  migration-drop   - Run database migrations drop"
 	@echo "  clean            - Remove build artifacts"
 	@echo "  help             - Show this help message"
 
