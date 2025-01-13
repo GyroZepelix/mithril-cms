@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"github.com/GyroZepelix/mithril-cms/internal/constant"
+	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/response"
 	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 const (
@@ -45,7 +47,12 @@ func JWTAuth(next http.Handler) http.Handler {
 		}
 
 		claims := token.Claims.(jwt.MapClaims)
-		userID := claims[auth.UserIdKey]
+		userID, err := uuid.Parse(claims[auth.UserIdKey].(string))
+		if err != nil {
+			logging.Errorf("UserID %s could not be parsed to UUID! Should not be possible unless JWT has been tampered with!")
+			response.InternalServerError(w, "Internal server error!")
+			return
+		}
 		role := claims[auth.RoleKey].(string)
 		userRole := constant.UserRoleMap[role]
 

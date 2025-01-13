@@ -9,6 +9,7 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/service/permission"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type PermissionMiddleware interface {
@@ -55,9 +56,9 @@ func NewPermissionMiddleware(defaultResourceIdKey string, unauthorizedHandler fu
 func (m *permissionMiddleware) RequirePermission(next http.HandlerFunc, accessPermissions ...permission.AccessPermission) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		userId := ctx.Value(auth.UserIdKey).(string)
-		if userId == "" {
-			logging.Warn("userId was blank while checking ownership. Are you authenticating before authorizing?")
+		userId, ok := ctx.Value(auth.UserIdKey).(uuid.UUID)
+		if !ok {
+			logging.Warnf("userId was %s while checking ownership. Are you authenticating before authorizing?", &userId)
 			m.unauthorizedHandler(w)
 			return
 		}
@@ -88,9 +89,10 @@ func (m *permissionMiddleware) RequirePermission(next http.HandlerFunc, accessPe
 			if override, ok := ctx.Value(resourceIdKeyOverrideKey).(string); ok && override != "" {
 				resourceIdKey = override
 			}
-			resourceId := chi.URLParam(r, resourceIdKey)
-			if resourceId == "" {
-				logging.Warnf("Id of key %s is empty, should not be possible!")
+			resourceIdParam := chi.URLParam(r, resourceIdKey)
+			resourceId, err := uuid.Parse(resourceIdParam)
+			if err != nil {
+				logging.Warnf("Value of key %s is %s, should be an UUID!", resourceIdKey, resourceIdParam)
 				m.unauthorizedHandler(w)
 				return
 			}

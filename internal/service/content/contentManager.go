@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
+	"github.com/google/uuid"
 )
 
 type Manager interface {
-	GetContent(contentId int32, ctx context.Context) (persistence.Post, error)
+	GetContent(contentId uuid.UUID, ctx context.Context) (persistence.Post, error)
 }
 
 type ContentManager struct {
@@ -20,6 +21,6 @@ func NewManager(db *persistence.Queries) Manager {
 	}
 }
 
-func (c *ContentManager) GetContent(contentId int32, ctx context.Context) (persistence.Post, error) {
+func (c *ContentManager) GetContent(contentId uuid.UUID, ctx context.Context) (persistence.Post, error) {
 	panic("unimplemented")
 }

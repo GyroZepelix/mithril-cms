@@ -2,13 +2,13 @@ package permission
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/GyroZepelix/mithril-cms/internal/service/content"
+	"github.com/google/uuid"
 )
 
 type OwnershipChecker interface {
-	IsOwner(userID string, resourceType ResourceType, resourceID string, ctx context.Context) (bool, error)
+	IsOwner(userID uuid.UUID, resourceType ResourceType, resourceID uuid.UUID, ctx context.Context) (bool, error)
 }
 
 func NewOwnershipChecker(contentManager content.Manager) OwnershipChecker {
@@ -35,7 +35,7 @@ type OwnershipService struct {
 //
 // Note: For ResourceTypePost, the method assumes that resourceID is a string
 // representation of an integer and will return false if parsing fails.
-func (o *OwnershipService) IsOwner(userID string, resourceType ResourceType, resourceID string, ctx context.Context) (bool, error) {
+func (o *OwnershipService) IsOwner(userID uuid.UUID, resourceType ResourceType, resourceID uuid.UUID, ctx context.Context) (bool, error) {
 	switch resourceType {
 	case ResourceTypeUser:
 		if resourceID == userID {
@@ -43,13 +43,12 @@ func (o *OwnershipService) IsOwner(userID string, resourceType ResourceType, res
 		}
 		return false, nil
 	case ResourceTypePost:
-		postId, err := strconv.ParseInt(resourceID, 10, 32)
+		post, err := o.contentManager.GetContent(resourceID, ctx)
 		if err != nil {
-			return false, nil
+			return false, err
 		}
-		post, err := o.contentManager.GetContent(int32(postId), ctx)
 
-		postAuthorId := strconv.Itoa(int(post.AuthorID))
+		postAuthorId := post.AuthorID
 		if postAuthorId == userID {
 			return true, nil
 		}

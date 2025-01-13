@@ -4,25 +4,25 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/response"
 	"github.com/GyroZepelix/mithril-cms/internal/service/auth"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 func (s ServiceContext) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := chi.URLParam(r, "id")
-	userId, err := strconv.ParseInt(userIdParam, 10, 32)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
-		logging.Errorf("Couldnt convert id %s to integer: %s", userIdParam, err)
+		logging.Errorf("Couldnt convert id %s to UUID: %s", userIdParam, err)
 		response.BadRequest(w, "Invalid user ID format")
 		return
 	}
 
-	userData, err := s.UserManager.GetUser(int32(userId), r.Context())
+	userData, err := s.UserManager.GetUser(userId, r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrNotFound):

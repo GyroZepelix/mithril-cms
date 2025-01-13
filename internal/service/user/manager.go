@@ -8,10 +8,11 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
+	"github.com/google/uuid"
 )
 
 type Manager interface {
-	GetUser(userId int32, ctx context.Context) (persistence.User, error)
+	GetUser(userId uuid.UUID, ctx context.Context) (persistence.User, error)
 	CreateUser(username, email, password string, ctx context.Context) (*persistence.User, error)
 	ListUsers(ctx context.Context) ([]persistence.User, error)
 	GetUserByUsername(username string, ctx context.Context) (persistence.User, error)
@@ -27,7 +28,7 @@ func NewManager(db *persistence.Queries) Manager {
 	}
 }
 
-func (m *UserManager) GetUser(userId int32, ctx context.Context) (persistence.User, error) {
+func (m *UserManager) GetUser(userId uuid.UUID, ctx context.Context) (persistence.User, error) {
 	user, err := m.db.GetUser(ctx, userId)
 	if err != nil {
 		switch {

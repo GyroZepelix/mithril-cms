@@ -2,11 +2,11 @@ package auth
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 const (
@@ -15,12 +15,12 @@ const (
 	ExpiredAtKey string = "expiredAt"
 )
 
-func CreateJWT(userID int32, role string) (string, error) {
+func CreateJWT(userID uuid.UUID, role string) (string, error) {
 	expiration := time.Second * time.Duration(config.Envs.AuthJwtExpirationInSec)
 	secret := config.Envs.AuthJwtSecret
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		UserIdKey:    strconv.FormatInt(int64(userID), 10),
+		UserIdKey:    userID,
 		RoleKey:      role,
 		ExpiredAtKey: time.Now().Add(expiration).Unix(),
 	})

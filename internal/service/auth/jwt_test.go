@@ -1,11 +1,11 @@
 package auth
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 func TestCreateJWT(t *testing.T) {
@@ -13,7 +13,7 @@ func TestCreateJWT(t *testing.T) {
 	t.Setenv("JWT_SECRET", jwtSecret)
 	config.ReloadConfig()
 
-	var givenUserId int32 = 1
+	givenUserId := uuid.MustParse("30bafa1b-a0f2-4e0b-a8b0-697258145f69")
 	givenUserRole := "testrole"
 
 	token, err := CreateJWT(givenUserId, givenUserRole)
@@ -40,9 +40,10 @@ func TestCreateJWT(t *testing.T) {
 			t.Errorf("error extracting claims from token")
 		}
 
-		if actualUserId, ok := claims[UserIdKey].(string); ok {
-			if i, err := strconv.Atoi(actualUserId); i != int(givenUserId) || err != nil {
-				t.Errorf("userId should be %d, but its %s", givenUserId, actualUserId)
+		if actualUserIdParam, ok := claims[UserIdKey].(string); ok {
+			actualUserId := uuid.MustParse(actualUserIdParam)
+			if actualUserId != givenUserId {
+				t.Errorf("userId should be %d, but its %s", givenUserId, actualUserIdParam)
 			}
 		} else {
 			t.Errorf("userId claim is missing or not a number")
