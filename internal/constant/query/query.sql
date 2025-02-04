@@ -19,3 +19,11 @@ INSERT INTO users (
     $1, $2, $3
 )
 RETURNING *;
+
+-- name: GetContent :one
+SELECT * FROM posts
+WHERE id = $1 LIMIT 1;
+
+-- name: ListContents :many
+SELECT * FROM posts
+ORDER by updated_at;

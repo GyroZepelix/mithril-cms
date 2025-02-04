@@ -83,6 +83,7 @@ func setupEnv(db *sql.DB) *handlers.ServiceContext {
 
 	return &handlers.ServiceContext{
 		UserManager:          userManager,
+		ContentManager:       contentManager,
 		PermissionMiddleware: middleware.NewPermissionMiddleware("id", unauthorizedResponse, ownershipChecker, permissionValidator),
 		Validator:            validator.New(validator.WithRequiredStructEnabled()),
 	}

@@ -1,0 +1,15 @@
+meta {
+  name: get_content
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/contents/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 77e7a7bd-0b8d-4f45-8564-494e0c0096c9
+}

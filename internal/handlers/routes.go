@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/GyroZepelix/mithril-cms/internal/middleware"
+	"github.com/GyroZepelix/mithril-cms/internal/service/content"
 	"github.com/GyroZepelix/mithril-cms/internal/service/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -11,6 +12,7 @@ import (
 
 type ServiceContext struct {
 	UserManager          user.Manager
+	ContentManager       content.Manager
 	PermissionMiddleware middleware.PermissionMiddleware
 	Validator            *validator.Validate
 }

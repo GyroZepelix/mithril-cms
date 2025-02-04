@@ -44,6 +44,28 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const getContent = `-- name: GetContent :one
+SELECT id, title, slug, content, author_id, status, created_at, updated_at, published_at FROM posts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetContent(ctx context.Context, id uuid.UUID) (Post, error) {
+	row := q.db.QueryRowContext(ctx, getContent, id)
+	var i Post
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Slug,
+		&i.Content,
+		&i.AuthorID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublishedAt,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, username, email, password, role, created_at, posts FROM users
 WHERE id = $1 LIMIT 1
@@ -82,6 +104,44 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		pq.Array(&i.Posts),
 	)
 	return i, err
+}
+
+const listContents = `-- name: ListContents :many
+SELECT id, title, slug, content, author_id, status, created_at, updated_at, published_at FROM posts
+ORDER by updated_at
+`
+
+func (q *Queries) ListContents(ctx context.Context) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, listContents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Slug,
+			&i.Content,
+			&i.AuthorID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUsers = `-- name: ListUsers :many
