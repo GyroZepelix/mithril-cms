@@ -67,6 +67,6 @@ migrate manages database migrations:
    migrate -database "postgresql://mithril:S3cret@localhost:5432/mithrildb?sslmode=disable" -path db/migration up
    ```
 
-### Makefile
+### Justfile
 
-The project includes a Makefile for common tasks. Run `make help` to see available commands.
+The project includes a Justfile for common tasks. Run `just -l` to see available recipes.
