@@ -31,7 +31,7 @@ func NewRouter(s *ServiceContext) http.Handler {
 
 			r.Get("/", s.handleListContents)
 			r.Get("/{id}", s.handleGetContent)
-			r.Post("/", s.handlePostContent)
+			r.Post("/", p.RequirePermission(s.handlePostContent, createContent))
 			r.Put("/{id}", s.handlePutContent)
 		})
 

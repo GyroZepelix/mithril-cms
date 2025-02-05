@@ -13,4 +13,9 @@ var (
 		Permission:      permission.CanRead,
 		PermissionLevel: permission.All,
 	}
+	createContent = permission.AccessPermission{
+		ResourceType:    permission.ResourceTypePost,
+		Permission:      permission.CanCreate,
+		PermissionLevel: permission.All,
+	}
 )

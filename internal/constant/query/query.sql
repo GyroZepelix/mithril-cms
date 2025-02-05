@@ -27,3 +27,14 @@ WHERE id = $1 LIMIT 1;
 -- name: ListContents :many
 SELECT * FROM posts
 ORDER by updated_at;
+
+-- name: CreateContent :one
+INSERT INTO posts (
+    title,
+    slug,
+    content,
+    author_id
+) VALUES (
+    $1, $2, $3, $4
+)
+RETURNING *;

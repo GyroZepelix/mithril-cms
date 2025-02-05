@@ -61,7 +61,7 @@ func (s ServiceContext) handleRegisterUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := s.Validator.Struct(registerParams); err != nil {
-		response.BadRequest(w, errs.MapValidationError(err))
+		response.UnprocessableContent(w, errs.MapValidationError(err))
 		return
 	}
 

@@ -108,7 +108,7 @@ func setupPermissions(pm permission.PermissionValidator) {
 			{
 				ResourceType:    permission.ResourceTypePost,
 				Permission:      permission.CanCreate,
-				PermissionLevel: permission.Owned,
+				PermissionLevel: permission.All,
 			},
 			{
 				ResourceType:    permission.ResourceTypePost,

@@ -1,0 +1,19 @@
+meta {
+  name: create_content
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/contents
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Mock Title",
+    "slug": "mock-title",
+    "content": "This is some mock content!/nyes it is!"
+  }
+}

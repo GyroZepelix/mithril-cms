@@ -48,6 +48,10 @@ func BadRequest(w http.ResponseWriter, clientErrorMessage any) {
 	GenericError(w, clientErrorMessage, http.StatusBadRequest)
 }
 
+func UnprocessableContent(w http.ResponseWriter, clientErrorMessage any) {
+	GenericError(w, clientErrorMessage, http.StatusUnprocessableEntity)
+}
+
 func NotFound(w http.ResponseWriter, clientErrorMessage any) {
 	GenericError(w, clientErrorMessage, http.StatusNotFound)
 }
