@@ -9,3 +9,8 @@ sql:
         out: "internal/storage/persistence"
         emit_json_tags: true
         emit_interface: true
+        overrides:
+          - column: "post_view.categories"
+            go_type:
+              type: "Category"
+              slice: true

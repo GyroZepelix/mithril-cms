@@ -185,6 +185,45 @@ func (q *Queries) ListContents(ctx context.Context) ([]Post, error) {
 	return items, nil
 }
 
+const listContentsWithCategories = `-- name: ListContentsWithCategories :many
+SELECT id, title, slug, content, author_id, status, created_at, updated_at, published_at, categories FROM post_view
+ORDER BY updated_at
+`
+
+func (q *Queries) ListContentsWithCategories(ctx context.Context) ([]PostView, error) {
+	rows, err := q.db.QueryContext(ctx, listContentsWithCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PostView
+	for rows.Next() {
+		var i PostView
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Slug,
+			&i.Content,
+			&i.AuthorID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PublishedAt,
+			pq.Array(&i.Categories),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, username, email, password, role, created_at, posts FROM users
 ORDER BY username

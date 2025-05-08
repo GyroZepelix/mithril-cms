@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=querier.go -destination=mocks/querier_mock.go
 type Querier interface {
 	CreateContent(ctx context.Context, arg CreateContentParams) (Post, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -17,6 +18,7 @@ type Querier interface {
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListContents(ctx context.Context) ([]Post, error)
+	ListContentsWithCategories(ctx context.Context) ([]PostView, error)
 	ListUsers(ctx context.Context) ([]User, error)
 }
 

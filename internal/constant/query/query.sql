@@ -28,6 +28,11 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM posts
 ORDER by updated_at;
 
+-- name: ListContentsWithCategories :many
+SELECT * FROM post_view
+ORDER BY updated_at;
+
+
 -- name: CreateContent :one
 INSERT INTO posts (
     title,

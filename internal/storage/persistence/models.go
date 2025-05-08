@@ -35,6 +35,19 @@ type PostCategory struct {
 	CategoryID int32     `json:"category_id"`
 }
 
+type PostView struct {
+	ID          uuid.UUID    `json:"id"`
+	Title       string       `json:"title"`
+	Slug        string       `json:"slug"`
+	Content     string       `json:"content"`
+	AuthorID    uuid.UUID    `json:"author_id"`
+	Status      string       `json:"status"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	PublishedAt sql.NullTime `json:"published_at"`
+	Categories  []Category   `json:"categories"`
+}
+
 type User struct {
 	ID        uuid.UUID   `json:"id"`
 	Username  string      `json:"username"`

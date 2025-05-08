@@ -10,7 +10,7 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/errs"
 	"github.com/GyroZepelix/mithril-cms/internal/logging"
 	"github.com/GyroZepelix/mithril-cms/internal/storage/persistence"
-	mock_persistence "github.com/GyroZepelix/mithril-cms/internal/storage/persistence/mock"
+	mock_persistence "github.com/GyroZepelix/mithril-cms/internal/storage/persistence/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -22,11 +22,11 @@ var USER_UUID = uuid.MustParse("13507239-0ed3-425b-a6d5-5daa8de1ce6f")
 
 func setupTest(t *testing.T) (*mock_persistence.MockQuerier, Manager, context.Context) {
 	ctrl := gomock.NewController(t)
-	mock := mock_persistence.NewMockQuerier(ctrl)
-	manager := NewManager(mock)
+	querierDbMock := mock_persistence.NewMockQuerier(ctrl)
+	manager := NewManager(querierDbMock)
 	ctx := context.Background()
 	logging.Init(os.Stdout)
-	return mock, manager, ctx
+	return querierDbMock, manager, ctx
 }
 
 func TestGetContent(t *testing.T) {
@@ -70,24 +70,24 @@ func TestGetContent(t *testing.T) {
 func TestListContents(t *testing.T) {
 
 	t.Parallel()
-	mock, cm, ctx := setupTest(t)
+	mock, contentManager, ctx := setupTest(t)
 
-	post1 := persistence.Post{
+	post1 := persistence.PostView{
 		ID:    POST_UUID_1,
 		Title: "title 1",
 	}
-	post2 := persistence.Post{
+	post2 := persistence.PostView{
 		ID:    POST_UUID_2,
 		Title: "title 2",
 	}
-	posts := []persistence.Post{post1, post2}
+	posts := []persistence.PostView{post1, post2}
 
 	mock.EXPECT().
-		ListContents(gomock.Any()).
+		ListContentsWithCategories(gomock.Any()).
 		Return(posts, nil).
 		Times(1)
 
-	gotPosts, err := cm.ListContents(ctx)
+	gotPosts, err := contentManager.ListContents(ctx)
 
 	assert.NoError(t, err)
 	assert.Equal(t, posts, gotPosts)

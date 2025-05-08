@@ -36,6 +36,10 @@ migration-down:
 migration-drop:
     migrate -database {{POSTGRESQL_URL}} -path db/migration drop
 
+# Generate mock files
+generate-mock:
+    go generate ./...
+
 # Clean build artifacts
 clean:
     rm -rf bin/

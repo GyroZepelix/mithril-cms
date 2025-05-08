@@ -31,12 +31,33 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS post_categories (
-    post_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL,
     category_id INT NOT NULL,
     PRIMARY KEY (post_id, category_id),
     FOREIGN KEY (post_id) REFERENCES posts(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
+
+CREATE VIEW post_view AS
+SELECT
+    p.*,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', c.id,
+                'name', c.name,
+                'slug', c.slug
+            )
+        ) FILTER (WHERE c.id IS NOT NULL), '[]'
+    ) AS categories
+FROM
+    posts p
+LEFT JOIN
+    post_categories pc ON pc.post_id = p.id
+LEFT JOIN
+    categories c ON pc.category_id = c.id
+GROUP BY
+    p.id;
 
 CREATE INDEX ON posts (author_id);
 CREATE INDEX ON post_categories (post_id, category_id);
