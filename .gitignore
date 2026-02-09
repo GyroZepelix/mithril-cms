@@ -1,0 +1,40 @@
+# Go binary
+mithril
+*.exe
+
+# Go build cache
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+
+# Media uploads
+media/
+
+# Node / Admin SPA
+node_modules/
+admin/dist/
+admin/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage.out
+coverage.html
+
+# Temporary files
+tmp/
+*.tmp
+
+# Claude Code
+.claude/

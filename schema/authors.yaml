@@ -1,0 +1,14 @@
+name: authors
+display_name: Authors
+public_read: true
+fields:
+  - name: name
+    type: string
+    required: true
+    searchable: true
+    max_length: 100
+  - name: bio
+    type: text
+    searchable: true
+  - name: avatar
+    type: media

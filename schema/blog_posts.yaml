@@ -1,0 +1,27 @@
+name: blog_posts
+display_name: Blog Posts
+public_read: true
+fields:
+  - name: title
+    type: string
+    required: true
+    searchable: true
+    max_length: 200
+  - name: slug
+    type: string
+    required: true
+    unique: true
+    regex: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+  - name: body
+    type: richtext
+    required: true
+    searchable: true
+  - name: category
+    type: enum
+    values: [tech, design, business]
+  - name: featured
+    type: boolean
+  - name: author
+    type: relation
+    relates_to: authors
+    relation_type: one
