@@ -1202,6 +1202,82 @@ fields:
 	}
 }
 
+// ----- Fix: required media/relation-one fields rejected -----
+
+func TestValidateSchemas_RequiredMediaField_Rejected(t *testing.T) {
+	schemas := []ContentType{{
+		Name:        "posts",
+		DisplayName: "Posts",
+		Fields: []Field{
+			{Name: "cover", Type: FieldTypeMedia, Required: true},
+		},
+	}}
+
+	err := ValidateSchemas(schemas)
+	requireValidationError(t, err, "required is not supported on media/relation fields")
+}
+
+func TestValidateSchemas_RequiredRelationOneField_Rejected(t *testing.T) {
+	schemas := []ContentType{
+		{
+			Name:        "authors",
+			DisplayName: "Authors",
+			Fields: []Field{
+				{Name: "name", Type: FieldTypeString},
+			},
+		},
+		{
+			Name:        "posts",
+			DisplayName: "Posts",
+			Fields: []Field{
+				{Name: "author", Type: FieldTypeRelation, RelatesTo: "authors", RelationType: RelationOne, Required: true},
+			},
+		},
+	}
+
+	err := ValidateSchemas(schemas)
+	requireValidationError(t, err, "required is not supported on media/relation fields")
+}
+
+func TestValidateSchemas_OptionalMediaField_Valid(t *testing.T) {
+	schemas := []ContentType{{
+		Name:        "posts",
+		DisplayName: "Posts",
+		Fields: []Field{
+			{Name: "cover", Type: FieldTypeMedia, Required: false},
+		},
+	}}
+
+	if err := ValidateSchemas(schemas); err != nil {
+		t.Fatalf("expected valid (optional media field), got: %v", err)
+	}
+}
+
+func TestValidateSchemas_RequiredRelationManyField_NotRejected(t *testing.T) {
+	// relation-many fields do not produce a FK column, so required + ON DELETE
+	// SET NULL is not a concern.
+	schemas := []ContentType{
+		{
+			Name:        "tags",
+			DisplayName: "Tags",
+			Fields: []Field{
+				{Name: "label", Type: FieldTypeString},
+			},
+		},
+		{
+			Name:        "posts",
+			DisplayName: "Posts",
+			Fields: []Field{
+				{Name: "tags", Type: FieldTypeRelation, RelatesTo: "tags", RelationType: RelationMany, Required: true},
+			},
+		},
+	}
+
+	if err := ValidateSchemas(schemas); err != nil {
+		t.Fatalf("expected valid (relation-many required is fine), got: %v", err)
+	}
+}
+
 // ----- Helpers -----
 
 // requireValidationError asserts that err is a *ValidationError containing

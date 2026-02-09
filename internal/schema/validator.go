@@ -304,6 +304,17 @@ func validateContentType(ct ContentType, knownTypes map[string]bool) []string {
 				problems = append(problems, fmt.Sprintf("%s: relation field must have relation_type of \"one\" or \"many\", got %q", prefix, f.RelationType))
 			}
 		}
+
+		// Validate that media and relation-one fields are not required.
+		// These fields use ON DELETE SET NULL in the DDL, which conflicts
+		// with a NOT NULL constraint.
+		if f.Required {
+			if f.Type == FieldTypeMedia {
+				problems = append(problems, fmt.Sprintf("field '%s': required is not supported on media/relation fields (ON DELETE SET NULL would conflict with NOT NULL constraint)", f.Name))
+			} else if f.Type == FieldTypeRelation && f.RelationType == RelationOne {
+				problems = append(problems, fmt.Sprintf("field '%s': required is not supported on media/relation fields (ON DELETE SET NULL would conflict with NOT NULL constraint)", f.Name))
+			}
+		}
 	}
 
 	return problems
