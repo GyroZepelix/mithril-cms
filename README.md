@@ -6,7 +6,19 @@ An open-source, self-hostable, schema-first headless CMS. Content types are defi
 
 **Early development / Work in progress.**
 
-The project scaffold is in place with configuration loading and structured logging. The database layer, schema engine, HTTP server, API routes, and admin UI are not yet implemented. See `spec/SPEC.md` for the full planned specification.
+Currently implemented:
+- Configuration loading and structured logging
+- Database connection pool with health checks
+- System table migrations (golang-migrate)
+- YAML schema loader and validator
+- Schema-to-SQL migration engine with diff detection
+- HTTP server with graceful shutdown and request timeouts
+- Full API route tree with middleware (RequestID, RealIP, slog logger, Recoverer, CORS, JSON Content-Type enforcement)
+- Response helpers (JSON, Error, Paginated) matching spec envelope format
+- Health check endpoint (`/health`) with database connectivity check
+- SPA handler (dev mode proxies to Vite, production serves placeholder)
+
+Pending: Authentication, content CRUD handlers, media upload/processing, full-text search, audit logging, admin UI. See `spec/SPEC.md` for the full planned specification.
 
 ## Tech Stack
 
@@ -26,8 +38,11 @@ mithril-cms/
 ├── cmd/
 │   └── mithril/          # Application entrypoint (main.go)
 ├── internal/
-│   └── config/           # Environment-based configuration
-├── migrations/           # SQL migration files (golang-migrate, not yet populated)
+│   ├── config/           # Environment-based configuration
+│   ├── database/         # PostgreSQL connection pool and migrations
+│   ├── schema/           # YAML schema loader, validator, and DDL engine
+│   └── server/           # HTTP server, router, middleware, response helpers
+├── migrations/           # SQL migration files (system tables)
 ├── schema/               # YAML content type definitions
 │   ├── authors.yaml
 │   └── blog_posts.yaml
@@ -35,7 +50,7 @@ mithril-cms/
 ├── admin/                # React admin SPA (not yet initialized)
 ├── Makefile
 ├── go.mod
-└── tools.go              # Tracks Go dependencies not yet directly imported
+└── tools.go              # Tracks Go dependencies not directly imported
 ```
 
 ## Configuration
@@ -67,10 +82,23 @@ Clone the repository and build:
 make build
 ```
 
-Run the binary:
+Run the binary (requires PostgreSQL and `MITHRIL_DATABASE_URL` environment variable):
 
 ```bash
+export MITHRIL_DATABASE_URL="postgres://user:pass@localhost:5432/mithril?sslmode=disable"
 make run
+```
+
+The server will:
+1. Connect to PostgreSQL and run system table migrations
+2. Load and validate YAML schemas from `./schema`
+3. Apply schema changes to the database (creating/altering content type tables)
+4. Start the HTTP server on port 8080 (configurable via `MITHRIL_PORT`)
+
+Check the health endpoint:
+
+```bash
+curl http://localhost:8080/health
 ```
 
 Other available Make targets:
@@ -81,7 +109,7 @@ make lint    # Run go vet (and golangci-lint if installed)
 make clean   # Remove build artifacts
 ```
 
-**Note:** The database connection and HTTP server are not yet wired up. Running the binary will load configuration, log startup info, and exit. This is expected at the current stage of development.
+**Note:** API route handlers currently return 501 Not Implemented. Content CRUD, authentication, and media upload functionality will be added in upcoming tasks.
 
 ## License
 
