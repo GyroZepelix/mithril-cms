@@ -12,6 +12,7 @@ import (
 
 	"github.com/GyroZepelix/mithril-cms/internal/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/config"
+	"github.com/GyroZepelix/mithril-cms/internal/content"
 	"github.com/GyroZepelix/mithril-cms/internal/database"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
 	"github.com/GyroZepelix/mithril-cms/internal/server"
@@ -111,6 +112,16 @@ func main() {
 	authHandler := auth.NewHandler(authService, cfg.DevMode)
 	authMiddleware := auth.Middleware(cfg.JWTSecret)
 
+	// --- Set up content CRUD ---
+	schemaMap := make(map[string]schema.ContentType, len(schemas))
+	for _, ct := range schemas {
+		schemaMap[ct.Name] = ct
+	}
+
+	contentRepo := content.NewRepository(db)
+	contentService := content.NewService(contentRepo, schemaMap)
+	contentHandler := content.NewHandler(contentService, schemaMap)
+
 	// --- Build router and start server ---
 	deps := server.Dependencies{
 		DB:             db,
@@ -119,6 +130,7 @@ func main() {
 		DevMode:        cfg.DevMode,
 		AuthHandler:    authHandler,
 		AuthMiddleware: authMiddleware,
+		ContentHandler: contentHandler,
 	}
 
 	router := server.NewRouter(deps)

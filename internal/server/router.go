@@ -20,6 +20,17 @@ type AuthHandler interface {
 	Me(w http.ResponseWriter, r *http.Request)
 }
 
+// ContentHandler defines the interface for content CRUD HTTP handlers.
+type ContentHandler interface {
+	AdminList(w http.ResponseWriter, r *http.Request)
+	AdminGet(w http.ResponseWriter, r *http.Request)
+	AdminCreate(w http.ResponseWriter, r *http.Request)
+	AdminUpdate(w http.ResponseWriter, r *http.Request)
+	AdminPublish(w http.ResponseWriter, r *http.Request)
+	PublicList(w http.ResponseWriter, r *http.Request)
+	PublicGet(w http.ResponseWriter, r *http.Request)
+}
+
 // Dependencies holds all injectable dependencies used by route handlers.
 type Dependencies struct {
 	DB             *database.DB
@@ -28,6 +39,7 @@ type Dependencies struct {
 	DevMode        bool
 	AuthHandler    AuthHandler
 	AuthMiddleware func(http.Handler) http.Handler
+	ContentHandler ContentHandler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -49,8 +61,13 @@ func NewRouter(deps Dependencies) chi.Router {
 	// --- Public API ---
 	r.Route("/api", func(r chi.Router) {
 		r.Use(requireJSON)
-		r.Get("/{contentType}", notImplemented)
-		r.Get("/{contentType}/{id}", notImplemented)
+		if deps.ContentHandler != nil {
+			r.Get("/{contentType}", deps.ContentHandler.PublicList)
+			r.Get("/{contentType}/{id}", deps.ContentHandler.PublicGet)
+		} else {
+			r.Get("/{contentType}", notImplemented)
+			r.Get("/{contentType}/{id}", notImplemented)
+		}
 	})
 
 	// --- Admin API ---
@@ -86,11 +103,19 @@ func NewRouter(deps Dependencies) chi.Router {
 
 			// Content CRUD.
 			r.Route("/content/{contentType}", func(r chi.Router) {
-				r.Get("/", notImplemented)
-				r.Post("/", notImplemented)
-				r.Get("/{id}", notImplemented)
-				r.Put("/{id}", notImplemented)
-				r.Post("/{id}/publish", notImplemented)
+				if deps.ContentHandler != nil {
+					r.Get("/", deps.ContentHandler.AdminList)
+					r.Post("/", deps.ContentHandler.AdminCreate)
+					r.Get("/{id}", deps.ContentHandler.AdminGet)
+					r.Put("/{id}", deps.ContentHandler.AdminUpdate)
+					r.Post("/{id}/publish", deps.ContentHandler.AdminPublish)
+				} else {
+					r.Get("/", notImplemented)
+					r.Post("/", notImplemented)
+					r.Get("/{id}", notImplemented)
+					r.Put("/{id}", notImplemented)
+					r.Post("/{id}/publish", notImplemented)
+				}
 			})
 
 			// Media management.

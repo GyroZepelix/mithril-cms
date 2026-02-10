@@ -12,6 +12,12 @@ func quoteIdent(name string) string {
 	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
 }
 
+// QuoteIdent is the exported version of quoteIdent, for use by other packages
+// that need to build dynamic SQL with schema-validated identifiers.
+func QuoteIdent(name string) string {
+	return quoteIdent(name)
+}
+
 // fieldSQLBaseType returns ONLY the PostgreSQL base type for a given field,
 // without any defaults, constraints, or references.
 func fieldSQLBaseType(f Field) string {
