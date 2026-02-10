@@ -11,6 +11,7 @@ import (
 
 	"github.com/GyroZepelix/mithril-cms/internal/database"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
+	"github.com/GyroZepelix/mithril-cms/internal/search"
 )
 
 // ErrNotFound is returned when a content entry does not exist.
@@ -49,6 +50,17 @@ func quotedColumns(cols []string) string {
 	return strings.Join(quoted, ", ")
 }
 
+// searchableFields returns the subset of fields marked as searchable.
+func searchableFields(fields []schema.Field) []schema.Field {
+	var result []schema.Field
+	for _, f := range fields {
+		if f.Searchable {
+			result = append(result, f)
+		}
+	}
+	return result
+}
+
 // List retrieves a paginated list of content entries with optional filtering and sorting.
 func (r *Repository) List(ctx context.Context, tableName string, fields []schema.Field, q QueryParams, publishedOnly bool) ([]map[string]any, int, error) {
 	cols := allColumns(fields)
@@ -78,6 +90,21 @@ func (r *Repository) List(ctx context.Context, tableName string, fields []schema
 		argIdx++
 	}
 
+	// Full-text search integration.
+	var searchWhere, searchOrder, searchHeadline string
+	var searchArgs []any
+	sFields := searchableFields(fields)
+	if q.Search != "" && len(sFields) > 0 {
+		searchWhere, searchOrder, searchHeadline, searchArgs = search.BuildSearchClause(
+			q.Search, sFields, argIdx,
+		)
+		if searchWhere != "" {
+			whereParts = append(whereParts, searchWhere)
+			args = append(args, searchArgs...)
+			argIdx += len(searchArgs)
+		}
+	}
+
 	whereClause := ""
 	if len(whereParts) > 0 {
 		whereClause = "WHERE " + strings.Join(whereParts, " AND ")
@@ -90,20 +117,32 @@ func (r *Repository) List(ctx context.Context, tableName string, fields []schema
 		return nil, 0, fmt.Errorf("counting entries: %w", err)
 	}
 
+	// Build SELECT columns, including search headline when active.
+	selectCols := quotedColumns(cols)
+	if searchHeadline != "" {
+		selectCols += ", " + searchHeadline
+	}
+
 	// Data query with ORDER BY, LIMIT, OFFSET.
 	orderDir := "DESC"
 	if strings.EqualFold(q.Order, "asc") {
 		orderDir = "ASC"
 	}
 
+	// When search is active, rank first, then user's sort.
+	var orderParts []string
+	if searchOrder != "" {
+		orderParts = append(orderParts, searchOrder)
+	}
+	orderParts = append(orderParts, fmt.Sprintf("%s %s", schema.QuoteIdent(q.Sort), orderDir))
+
 	offset := (q.Page - 1) * q.PerPage
 
-	dataSQL := fmt.Sprintf("SELECT %s FROM %s %s ORDER BY %s %s LIMIT $%d OFFSET $%d",
-		quotedColumns(cols),
+	dataSQL := fmt.Sprintf("SELECT %s FROM %s %s ORDER BY %s LIMIT $%d OFFSET $%d",
+		selectCols,
 		qTable,
 		whereClause,
-		schema.QuoteIdent(q.Sort),
-		orderDir,
+		strings.Join(orderParts, ", "),
 		argIdx,
 		argIdx+1,
 	)
