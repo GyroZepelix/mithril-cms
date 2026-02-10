@@ -11,12 +11,23 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
 )
 
+// AuthHandler defines the interface for authentication HTTP handlers, allowing
+// the router to be decoupled from the concrete auth implementation.
+type AuthHandler interface {
+	Login(w http.ResponseWriter, r *http.Request)
+	Refresh(w http.ResponseWriter, r *http.Request)
+	Logout(w http.ResponseWriter, r *http.Request)
+	Me(w http.ResponseWriter, r *http.Request)
+}
+
 // Dependencies holds all injectable dependencies used by route handlers.
 type Dependencies struct {
-	DB      *database.DB
-	Engine  *schema.Engine
-	Schemas []schema.ContentType
-	DevMode bool
+	DB             *database.DB
+	Engine         *schema.Engine
+	Schemas        []schema.ContentType
+	DevMode        bool
+	AuthHandler    AuthHandler
+	AuthMiddleware func(http.Handler) http.Handler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -47,15 +58,27 @@ func NewRouter(deps Dependencies) chi.Router {
 		r.Use(requireJSON)
 
 		// Public auth routes (no auth middleware required).
-		r.Post("/auth/login", notImplemented)
-		r.Post("/auth/refresh", notImplemented)
-		r.Post("/auth/logout", notImplemented)
+		if deps.AuthHandler != nil {
+			r.Post("/auth/login", deps.AuthHandler.Login)
+			r.Post("/auth/refresh", deps.AuthHandler.Refresh)
+			r.Post("/auth/logout", deps.AuthHandler.Logout)
+		} else {
+			r.Post("/auth/login", notImplemented)
+			r.Post("/auth/refresh", notImplemented)
+			r.Post("/auth/logout", notImplemented)
+		}
 
-		// Protected routes - auth middleware added in Task 6.
+		// Protected routes - require valid JWT.
 		r.Group(func(r chi.Router) {
-			// r.Use(authMiddleware) -- wired in Task 6
+			if deps.AuthMiddleware != nil {
+				r.Use(deps.AuthMiddleware)
+			}
 
-			r.Get("/auth/me", notImplemented)
+			if deps.AuthHandler != nil {
+				r.Get("/auth/me", deps.AuthHandler.Me)
+			} else {
+				r.Get("/auth/me", notImplemented)
+			}
 
 			// Content type introspection.
 			r.Get("/content-types", notImplemented)

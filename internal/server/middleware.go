@@ -16,7 +16,7 @@ import (
 func requireJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
-			if r.ContentLength != 0 {
+			if r.ContentLength > 0 {
 				ct := r.Header.Get("Content-Type")
 				mediaType, _, _ := mime.ParseMediaType(ct)
 				if strings.HasPrefix(mediaType, "multipart/") {

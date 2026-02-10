@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GyroZepelix/mithril-cms/internal/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/GyroZepelix/mithril-cms/internal/database"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
@@ -87,12 +88,37 @@ func main() {
 	}
 	slog.Info("schemas applied")
 
+	// --- Set up authentication ---
+	if cfg.JWTSecret == "" {
+		slog.Error("MITHRIL_JWT_SECRET is required")
+		os.Exit(1)
+	}
+
+	authRepo := auth.NewRepository(db)
+	authService := auth.NewService(authRepo, cfg.JWTSecret)
+
+	// Create initial admin if configured and no admins exist yet.
+	if cfg.AdminEmail != "" && cfg.AdminPassword != "" {
+		adminCtx, adminCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer adminCancel()
+
+		if err := authService.EnsureAdmin(adminCtx, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+			slog.Error("failed to ensure initial admin", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	authHandler := auth.NewHandler(authService, cfg.DevMode)
+	authMiddleware := auth.Middleware(cfg.JWTSecret)
+
 	// --- Build router and start server ---
 	deps := server.Dependencies{
-		DB:      db,
-		Engine:  engine,
-		Schemas: schemas,
-		DevMode: cfg.DevMode,
+		DB:             db,
+		Engine:         engine,
+		Schemas:        schemas,
+		DevMode:        cfg.DevMode,
+		AuthHandler:    authHandler,
+		AuthMiddleware: authMiddleware,
 	}
 
 	router := server.NewRouter(deps)
