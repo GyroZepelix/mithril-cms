@@ -104,6 +104,26 @@ export type MediaRecord = {
   created_at: string;
 };
 
+// --- Audit Log ---
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  actor_id: string;
+  resource: string;
+  resource_id: string;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+};
+
+// --- Schema Refresh ---
+
+export type SchemaRefreshResult = {
+  applied: string[];
+  created: string[];
+  message: string;
+};
+
 // --- Field Component Props ---
 
 export type FieldComponentProps = {
