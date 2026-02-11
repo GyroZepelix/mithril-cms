@@ -18,6 +18,8 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
+
+	"github.com/GyroZepelix/mithril-cms/internal/audit"
 )
 
 const (
@@ -74,15 +76,25 @@ var imageVariants = []imageVariant{
 
 // Service implements the business logic for media upload, processing, and deletion.
 type Service struct {
-	repo    *Repository
-	storage *LocalStorage
+	repo         *Repository
+	storage      *LocalStorage
+	auditService *audit.Service
 }
 
-// NewService creates a new media Service.
-func NewService(repo *Repository, storage *LocalStorage) *Service {
+// NewService creates a new media Service. The audit service is optional;
+// if nil, audit events are silently skipped.
+func NewService(repo *Repository, storage *LocalStorage, auditService *audit.Service) *Service {
 	return &Service{
-		repo:    repo,
-		storage: storage,
+		repo:         repo,
+		storage:      storage,
+		auditService: auditService,
+	}
+}
+
+// logAudit sends an audit event if the audit service is configured.
+func (s *Service) logAudit(ctx context.Context, event audit.Event) {
+	if s.auditService != nil {
+		s.auditService.Log(ctx, event)
 	}
 }
 
@@ -195,6 +207,13 @@ func (s *Service) Upload(ctx context.Context, fh *multipart.FileHeader, adminID 
 		return nil, fmt.Errorf("creating media record: %w", err)
 	}
 
+	s.logAudit(ctx, audit.Event{
+		Action:     "media.upload",
+		ActorID:    adminID,
+		Resource:   "media",
+		ResourceID: m.ID,
+	})
+
 	return m, nil
 }
 
@@ -275,7 +294,8 @@ func (s *Service) cleanupFiles(filename string, variantPaths map[string]string) 
 }
 
 // Delete removes a media record and all associated files from storage.
-func (s *Service) Delete(ctx context.Context, id string) error {
+// The adminID is used for audit logging.
+func (s *Service) Delete(ctx context.Context, id, adminID string) error {
 	// Look up the record first so we know which files to delete.
 	m, err := s.repo.GetByID(ctx, id)
 	if err != nil {
@@ -289,6 +309,14 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 
 	// Clean up files (best-effort, log failures).
 	s.cleanupFiles(m.Filename, m.Variants)
+
+	s.logAudit(ctx, audit.Event{
+		Action:     "media.delete",
+		ActorID:    adminID,
+		Resource:   "media",
+		ResourceID: id,
+	})
+
 	return nil
 }
 

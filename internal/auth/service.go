@@ -86,37 +86,37 @@ func (s *Service) VerifyPassword(hash, password string) (bool, error) {
 	return match, nil
 }
 
-// Login validates the given credentials and, on success, returns a signed JWT
-// access token and a raw refresh token (to be sent to the client in a cookie).
-// The refresh token's SHA256 hash is stored in the database.
-func (s *Service) Login(ctx context.Context, email, password string) (accessToken string, refreshToken string, err error) {
+// Login validates the given credentials and, on success, returns the admin's
+// UUID, a signed JWT access token, and a raw refresh token (to be sent to the
+// client in a cookie). The refresh token's SHA256 hash is stored in the database.
+func (s *Service) Login(ctx context.Context, email, password string) (adminID string, accessToken string, refreshToken string, err error) {
 	admin, err := s.repo.GetAdminByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", "", ErrInvalidCredentials
+			return "", "", "", ErrInvalidCredentials
 		}
-		return "", "", fmt.Errorf("looking up admin: %w", err)
+		return "", "", "", fmt.Errorf("looking up admin: %w", err)
 	}
 
 	match, err := s.VerifyPassword(admin.PasswordHash, password)
 	if err != nil {
-		return "", "", fmt.Errorf("verifying password: %w", err)
+		return "", "", "", fmt.Errorf("verifying password: %w", err)
 	}
 	if !match {
-		return "", "", ErrInvalidCredentials
+		return "", "", "", ErrInvalidCredentials
 	}
 
 	accessToken, err = CreateAccessToken(admin.ID, admin.Email, s.jwtSecret)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	refreshToken, err = s.createRefreshToken(ctx, admin.ID)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	return accessToken, refreshToken, nil
+	return admin.ID, accessToken, refreshToken, nil
 }
 
 // Refresh validates the given raw refresh token, atomically rotates it (deletes

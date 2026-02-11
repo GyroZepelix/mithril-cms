@@ -4,21 +4,32 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/GyroZepelix/mithril-cms/internal/audit"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
 	"github.com/GyroZepelix/mithril-cms/internal/server"
 )
 
 // Service implements the business logic for content CRUD operations.
 type Service struct {
-	repo    *Repository
-	schemas map[string]schema.ContentType
+	repo         *Repository
+	schemas      map[string]schema.ContentType
+	auditService *audit.Service
 }
 
-// NewService creates a new content Service.
-func NewService(repo *Repository, schemas map[string]schema.ContentType) *Service {
+// NewService creates a new content Service. The audit service is optional;
+// if nil, audit events are silently skipped.
+func NewService(repo *Repository, schemas map[string]schema.ContentType, auditService *audit.Service) *Service {
 	return &Service{
-		repo:    repo,
-		schemas: schemas,
+		repo:         repo,
+		schemas:      schemas,
+		auditService: auditService,
+	}
+}
+
+// logAudit sends an audit event if the audit service is configured.
+func (s *Service) logAudit(ctx context.Context, event audit.Event) {
+	if s.auditService != nil {
+		s.auditService.Log(ctx, event)
 	}
 }
 
@@ -82,6 +93,15 @@ func (s *Service) Create(ctx context.Context, contentType string, data map[strin
 		return nil, fmt.Errorf("creating %s entry: %w", contentType, err)
 	}
 
+	if id, ok := entry["id"].(string); ok {
+		s.logAudit(ctx, audit.Event{
+			Action:     "entry.create",
+			ActorID:    adminID,
+			Resource:   contentType,
+			ResourceID: id,
+		})
+	}
+
 	return entry, nil
 }
 
@@ -101,6 +121,13 @@ func (s *Service) Update(ctx context.Context, contentType, id string, data map[s
 		return nil, fmt.Errorf("updating %s entry: %w", contentType, err)
 	}
 
+	s.logAudit(ctx, audit.Event{
+		Action:     "entry.update",
+		ActorID:    adminID,
+		Resource:   contentType,
+		ResourceID: id,
+	})
+
 	return entry, nil
 }
 
@@ -115,6 +142,13 @@ func (s *Service) Publish(ctx context.Context, contentType, id, adminID string) 
 	if err != nil {
 		return nil, fmt.Errorf("publishing %s entry: %w", contentType, err)
 	}
+
+	s.logAudit(ctx, audit.Event{
+		Action:     "entry.publish",
+		ActorID:    adminID,
+		Resource:   contentType,
+		ResourceID: id,
+	})
 
 	return entry, nil
 }

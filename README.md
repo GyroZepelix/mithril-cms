@@ -17,8 +17,12 @@ Currently implemented:
 - Response helpers (JSON, Error, Paginated) matching spec envelope format
 - Health check endpoint (`/health`) with database connectivity check
 - SPA handler (dev mode proxies to Vite, production serves placeholder)
+- Authentication system (JWT access tokens + refresh token rotation, Argon2id password hashing)
+- Content CRUD API (dynamic SQL generation, validation for all 12 field types, pagination/filtering/sorting)
+- Full-text search integration (PostgreSQL tsvector, ranked results with highlights)
+- Media upload system (image variant generation, MIME validation, security headers, path traversal protection)
 
-Pending: Authentication, content CRUD handlers, media upload/processing, full-text search, audit logging, admin UI. See `spec/SPEC.md` for the full planned specification.
+Pending: Audit logging, schema refresh endpoint, content type introspection API, admin UI. See `spec/SPEC.md` for the full planned specification.
 
 ## Tech Stack
 
@@ -41,7 +45,12 @@ mithril-cms/
 │   ├── config/           # Environment-based configuration
 │   ├── database/         # PostgreSQL connection pool and migrations
 │   ├── schema/           # YAML schema loader, validator, and DDL engine
-│   └── server/           # HTTP server, router, middleware, response helpers
+│   ├── server/           # HTTP server, router, middleware, response helpers
+│   ├── auth/             # JWT authentication, Argon2id hashing, middleware
+│   ├── content/          # Dynamic content CRUD, validation, query builder
+│   ├── search/           # Full-text search with PostgreSQL tsvector
+│   ├── media/            # Media upload, image processing, file serving
+│   └── audit/            # Audit logging system (pending implementation)
 ├── migrations/           # SQL migration files (system tables)
 ├── schema/               # YAML content type definitions
 │   ├── authors.yaml
@@ -109,7 +118,7 @@ make lint    # Run go vet (and golangci-lint if installed)
 make clean   # Remove build artifacts
 ```
 
-**Note:** API route handlers currently return 501 Not Implemented. Content CRUD, authentication, and media upload functionality will be added in upcoming tasks.
+**Note:** The following API routes are now functional: authentication (`/admin/api/auth/*`), content CRUD (`/api/{content-type}`, `/admin/api/content/{content-type}`), and media upload/serving (`/admin/api/media`, `/media/{filename}`). Pending routes: audit log, content type introspection, and schema refresh.
 
 ## License
 

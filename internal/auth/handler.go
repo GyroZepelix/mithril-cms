@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/GyroZepelix/mithril-cms/internal/audit"
 	"github.com/GyroZepelix/mithril-cms/internal/server"
 )
 
@@ -22,17 +24,20 @@ const (
 
 // Handler provides HTTP handlers for authentication endpoints.
 type Handler struct {
-	service *Service
-	devMode bool
+	service      *Service
+	auditService *audit.Service
+	devMode      bool
 }
 
 // NewHandler creates a new auth Handler with the given service. The devMode
 // flag controls whether the refresh token cookie is set with the Secure flag
-// (disabled in dev mode to allow HTTP on localhost).
-func NewHandler(service *Service, devMode bool) *Handler {
+// (disabled in dev mode to allow HTTP on localhost). The audit service is
+// optional; if nil, audit events are silently skipped.
+func NewHandler(service *Service, auditService *audit.Service, devMode bool) *Handler {
 	return &Handler{
-		service: service,
-		devMode: devMode,
+		service:      service,
+		auditService: auditService,
+		devMode:      devMode,
 	}
 }
 
@@ -59,9 +64,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.Login(r.Context(), req.Email, req.Password)
+	adminID, accessToken, refreshToken, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
+			h.logAudit(r.Context(), audit.Event{
+				Action:  "admin.login.failure",
+				Payload: map[string]any{"email": req.Email},
+			})
 			server.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid email or password", nil)
 			return
 		}
@@ -69,6 +78,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, http.StatusInternalServerError, "INTERNAL_ERROR", "an internal error occurred", nil)
 		return
 	}
+
+	h.logAudit(r.Context(), audit.Event{
+		Action:  "admin.login.success",
+		ActorID: adminID,
+	})
 
 	h.setRefreshCookie(w, refreshToken)
 	server.JSON(w, http.StatusOK, map[string]string{
@@ -142,6 +156,13 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		"id":    adminID,
 		"email": email,
 	})
+}
+
+// logAudit sends an audit event if the audit service is configured.
+func (h *Handler) logAudit(ctx context.Context, event audit.Event) {
+	if h.auditService != nil {
+		h.auditService.Log(ctx, event)
+	}
 }
 
 // setRefreshCookie sets the refresh token as an httpOnly cookie on the response.

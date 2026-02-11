@@ -40,6 +40,11 @@ type MediaHandler interface {
 	Serve(w http.ResponseWriter, r *http.Request)
 }
 
+// AuditHandler defines the interface for audit log HTTP handlers.
+type AuditHandler interface {
+	List(w http.ResponseWriter, r *http.Request)
+}
+
 // Dependencies holds all injectable dependencies used by route handlers.
 type Dependencies struct {
 	DB             *database.DB
@@ -50,6 +55,7 @@ type Dependencies struct {
 	AuthMiddleware func(http.Handler) http.Handler
 	ContentHandler ContentHandler
 	MediaHandler   MediaHandler
+	AuditHandler   AuditHandler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -142,7 +148,11 @@ func NewRouter(deps Dependencies) chi.Router {
 			})
 
 			// Audit log.
-			r.Get("/audit-log", notImplemented)
+			if deps.AuditHandler != nil {
+				r.Get("/audit-log", deps.AuditHandler.List)
+			} else {
+				r.Get("/audit-log", notImplemented)
+			}
 
 			// Schema refresh.
 			r.Post("/schema/refresh", notImplemented)

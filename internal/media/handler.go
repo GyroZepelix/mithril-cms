@@ -103,7 +103,8 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Delete(r.Context(), id)
+	adminID := auth.AdminIDFromContext(r.Context())
+	err := h.service.Delete(r.Context(), id, adminID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			server.Error(w, http.StatusNotFound, "NOT_FOUND", "media not found", nil)

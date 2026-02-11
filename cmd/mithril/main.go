@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GyroZepelix/mithril-cms/internal/audit"
 	"github.com/GyroZepelix/mithril-cms/internal/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/GyroZepelix/mithril-cms/internal/content"
@@ -90,6 +91,13 @@ func main() {
 	}
 	slog.Info("schemas applied")
 
+	// --- Set up audit logging ---
+	auditRepo := audit.NewRepository(db)
+	auditService := audit.NewService(auditRepo)
+	auditService.Start()
+	auditHandler := audit.NewHandler(auditService)
+	slog.Info("audit logging started")
+
 	// --- Set up authentication ---
 	if cfg.JWTSecret == "" {
 		slog.Error("MITHRIL_JWT_SECRET is required")
@@ -110,7 +118,7 @@ func main() {
 		}
 	}
 
-	authHandler := auth.NewHandler(authService, cfg.DevMode)
+	authHandler := auth.NewHandler(authService, auditService, cfg.DevMode)
 	authMiddleware := auth.Middleware(cfg.JWTSecret)
 
 	// --- Set up content CRUD ---
@@ -120,7 +128,7 @@ func main() {
 	}
 
 	contentRepo := content.NewRepository(db)
-	contentService := content.NewService(contentRepo, schemaMap)
+	contentService := content.NewService(contentRepo, schemaMap, auditService)
 	contentHandler := content.NewHandler(contentService, schemaMap)
 
 	// --- Set up media ---
@@ -132,7 +140,7 @@ func main() {
 	slog.Info("media storage initialized", "dir", cfg.MediaDir)
 
 	mediaRepo := media.NewRepository(db)
-	mediaService := media.NewService(mediaRepo, mediaStorage)
+	mediaService := media.NewService(mediaRepo, mediaStorage, auditService)
 	mediaHandler := media.NewHandler(mediaService, cfg.DevMode)
 
 	// --- Build router and start server ---
@@ -145,6 +153,7 @@ func main() {
 		AuthMiddleware: authMiddleware,
 		ContentHandler: contentHandler,
 		MediaHandler:   mediaHandler,
+		AuditHandler:   auditHandler,
 	}
 
 	router := server.NewRouter(deps)
@@ -180,6 +189,10 @@ func main() {
 		slog.Error("server shutdown error", "error", err)
 		os.Exit(1)
 	}
+
+	// Drain remaining audit events before closing the database.
+	slog.Info("draining audit events...")
+	auditService.Shutdown(shutdownCtx)
 
 	slog.Info("Mithril CMS stopped")
 }
