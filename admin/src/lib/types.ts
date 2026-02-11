@@ -83,6 +83,27 @@ export type ApiErrorResponse = {
   };
 };
 
+// --- Media ---
+
+export type MediaVariants = {
+  sm?: string;
+  md?: string;
+  lg?: string;
+};
+
+export type MediaRecord = {
+  id: string;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  variants: MediaVariants;
+  uploaded_by: string;
+  created_at: string;
+};
+
 // --- Field Component Props ---
 
 export type FieldComponentProps = {

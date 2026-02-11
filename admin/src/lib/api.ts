@@ -193,6 +193,11 @@ export const api = {
     });
   },
 
+  /** Upload FormData (e.g. file uploads). Content-Type is set automatically by the browser. */
+  upload<T>(url: string, body: FormData): Promise<T> {
+    return request<T>(url, { method: "POST", body });
+  },
+
   delete<T>(url: string): Promise<T> {
     return request<T>(url, { method: "DELETE" });
   },
