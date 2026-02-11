@@ -7,6 +7,5 @@
 package tools
 
 import (
-	_ "github.com/disintegration/imaging"
 	_ "github.com/golang-migrate/migrate/v4"
 )

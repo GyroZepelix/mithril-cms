@@ -31,6 +31,15 @@ type ContentHandler interface {
 	PublicGet(w http.ResponseWriter, r *http.Request)
 }
 
+// MediaHandler defines the interface for media upload, listing, deletion,
+// and public serving HTTP handlers.
+type MediaHandler interface {
+	Upload(w http.ResponseWriter, r *http.Request)
+	List(w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
+	Serve(w http.ResponseWriter, r *http.Request)
+}
+
 // Dependencies holds all injectable dependencies used by route handlers.
 type Dependencies struct {
 	DB             *database.DB
@@ -40,6 +49,7 @@ type Dependencies struct {
 	AuthHandler    AuthHandler
 	AuthMiddleware func(http.Handler) http.Handler
 	ContentHandler ContentHandler
+	MediaHandler   MediaHandler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -120,9 +130,15 @@ func NewRouter(deps Dependencies) chi.Router {
 
 			// Media management.
 			r.Route("/media", func(r chi.Router) {
-				r.Post("/", notImplemented)
-				r.Get("/", notImplemented)
-				r.Delete("/{id}", notImplemented)
+				if deps.MediaHandler != nil {
+					r.Post("/", deps.MediaHandler.Upload)
+					r.Get("/", deps.MediaHandler.List)
+					r.Delete("/{id}", deps.MediaHandler.Delete)
+				} else {
+					r.Post("/", notImplemented)
+					r.Get("/", notImplemented)
+					r.Delete("/{id}", notImplemented)
+				}
 			})
 
 			// Audit log.
@@ -134,7 +150,11 @@ func NewRouter(deps Dependencies) chi.Router {
 	})
 
 	// --- Public media serving ---
-	r.Get("/media/{filename}", notImplemented)
+	if deps.MediaHandler != nil {
+		r.Get("/media/{filename}", deps.MediaHandler.Serve)
+	} else {
+		r.Get("/media/{filename}", notImplemented)
+	}
 
 	// --- SPA catch-all (must be last) ---
 	r.NotFound(newSPAHandler(deps.DevMode))

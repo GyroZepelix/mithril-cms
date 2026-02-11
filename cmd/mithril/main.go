@@ -14,6 +14,7 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/GyroZepelix/mithril-cms/internal/content"
 	"github.com/GyroZepelix/mithril-cms/internal/database"
+	"github.com/GyroZepelix/mithril-cms/internal/media"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
 	"github.com/GyroZepelix/mithril-cms/internal/server"
 )
@@ -122,6 +123,18 @@ func main() {
 	contentService := content.NewService(contentRepo, schemaMap)
 	contentHandler := content.NewHandler(contentService, schemaMap)
 
+	// --- Set up media ---
+	mediaStorage, err := media.NewLocalStorage(cfg.MediaDir)
+	if err != nil {
+		slog.Error("failed to initialize media storage", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("media storage initialized", "dir", cfg.MediaDir)
+
+	mediaRepo := media.NewRepository(db)
+	mediaService := media.NewService(mediaRepo, mediaStorage)
+	mediaHandler := media.NewHandler(mediaService, cfg.DevMode)
+
 	// --- Build router and start server ---
 	deps := server.Dependencies{
 		DB:             db,
@@ -131,6 +144,7 @@ func main() {
 		AuthHandler:    authHandler,
 		AuthMiddleware: authMiddleware,
 		ContentHandler: contentHandler,
+		MediaHandler:   mediaHandler,
 	}
 
 	router := server.NewRouter(deps)
