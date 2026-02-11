@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 
@@ -20,6 +21,7 @@ const maxBodySize = 1 << 20
 // Handler provides HTTP handlers for content CRUD operations.
 type Handler struct {
 	service *Service
+	mu      sync.RWMutex
 	schemas map[string]schema.ContentType
 }
 
@@ -31,11 +33,27 @@ func NewHandler(service *Service, schemas map[string]schema.ContentType) *Handle
 	}
 }
 
+// UpdateSchemas replaces the in-memory schema map. This is called after a
+// schema refresh to ensure the handler uses the latest content type definitions.
+func (h *Handler) UpdateSchemas(schemas map[string]schema.ContentType) {
+	h.mu.Lock()
+	h.schemas = schemas
+	h.mu.Unlock()
+}
+
+// getSchema safely retrieves a schema by name with read locking.
+func (h *Handler) getSchema(name string) (schema.ContentType, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	ct, ok := h.schemas[name]
+	return ct, ok
+}
+
 // lookupSchema validates that the content type exists and returns it.
 // Returns false if the content type was not found (404 already written).
 func (h *Handler) lookupSchema(w http.ResponseWriter, r *http.Request) (schema.ContentType, bool) {
 	name := chi.URLParam(r, "contentType")
-	ct, ok := h.schemas[name]
+	ct, ok := h.getSchema(name)
 	if !ok {
 		server.Error(w, http.StatusNotFound, "NOT_FOUND",
 			fmt.Sprintf("content type '%s' not found", name), nil)

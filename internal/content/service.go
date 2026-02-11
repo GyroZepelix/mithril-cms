@@ -3,6 +3,7 @@ package content
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/GyroZepelix/mithril-cms/internal/audit"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
@@ -12,6 +13,7 @@ import (
 // Service implements the business logic for content CRUD operations.
 type Service struct {
 	repo         *Repository
+	mu           sync.RWMutex
 	schemas      map[string]schema.ContentType
 	auditService *audit.Service
 }
@@ -24,6 +26,22 @@ func NewService(repo *Repository, schemas map[string]schema.ContentType, auditSe
 		schemas:      schemas,
 		auditService: auditService,
 	}
+}
+
+// UpdateSchemas replaces the in-memory schema map. This is called after a
+// schema refresh to ensure the service uses the latest content type definitions.
+func (s *Service) UpdateSchemas(schemas map[string]schema.ContentType) {
+	s.mu.Lock()
+	s.schemas = schemas
+	s.mu.Unlock()
+}
+
+// getSchema safely retrieves a schema by name with read locking.
+func (s *Service) getSchema(name string) (schema.ContentType, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	ct, ok := s.schemas[name]
+	return ct, ok
 }
 
 // logAudit sends an audit event if the audit service is configured.
@@ -49,7 +67,7 @@ func (e *ValidationError) Error() string {
 
 // List retrieves a paginated list of content entries.
 func (s *Service) List(ctx context.Context, contentType string, q QueryParams, publishedOnly bool) ([]map[string]any, int, error) {
-	ct, ok := s.schemas[contentType]
+	ct, ok := s.getSchema(contentType)
 	if !ok {
 		return nil, 0, ErrNotFound
 	}
@@ -64,7 +82,7 @@ func (s *Service) List(ctx context.Context, contentType string, q QueryParams, p
 
 // GetByID retrieves a single content entry by ID.
 func (s *Service) GetByID(ctx context.Context, contentType, id string, publishedOnly bool) (map[string]any, error) {
-	ct, ok := s.schemas[contentType]
+	ct, ok := s.getSchema(contentType)
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -79,7 +97,7 @@ func (s *Service) GetByID(ctx context.Context, contentType, id string, published
 
 // Create validates and inserts a new content entry as a draft.
 func (s *Service) Create(ctx context.Context, contentType string, data map[string]any, adminID string) (map[string]any, error) {
-	ct, ok := s.schemas[contentType]
+	ct, ok := s.getSchema(contentType)
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -107,7 +125,7 @@ func (s *Service) Create(ctx context.Context, contentType string, data map[strin
 
 // Update validates and updates an existing content entry.
 func (s *Service) Update(ctx context.Context, contentType, id string, data map[string]any, adminID string) (map[string]any, error) {
-	ct, ok := s.schemas[contentType]
+	ct, ok := s.getSchema(contentType)
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -133,7 +151,7 @@ func (s *Service) Update(ctx context.Context, contentType, id string, data map[s
 
 // Publish sets an entry's status to 'published'.
 func (s *Service) Publish(ctx context.Context, contentType, id, adminID string) (map[string]any, error) {
-	ct, ok := s.schemas[contentType]
+	ct, ok := s.getSchema(contentType)
 	if !ok {
 		return nil, ErrNotFound
 	}

@@ -250,6 +250,148 @@ func (e *Engine) GetExistingContentType(ctx context.Context, name string) (*Cont
 	}, nil
 }
 
+// RefreshResult holds the outcome of a schema Refresh operation, including
+// which changes were applied, which were blocked as breaking, and which
+// content types were created or updated.
+type RefreshResult struct {
+	// Applied is the list of changes that were successfully applied.
+	Applied []Change
+
+	// Breaking is the list of breaking changes that were NOT applied
+	// (unless force was true, in which case they appear in Applied instead).
+	Breaking []Change
+
+	// NewTypes lists the names of content types that were newly created.
+	NewTypes []string
+
+	// UpdatedTypes lists the names of existing content types that were modified.
+	UpdatedTypes []string
+}
+
+// Refresh reloads schemas from the given directory, validates them, diffs
+// against the current database state, and applies changes based on force mode.
+// Breaking changes block the entire refresh unless force is true.
+//
+// Returns the refresh result, the newly loaded schemas (nil if breaking changes
+// blocked the refresh), and any error.
+func (e *Engine) Refresh(ctx context.Context, schemaDir string, force bool) (*RefreshResult, []ContentType, error) {
+	// Step 1: Load schemas from disk.
+	schemas, err := LoadSchemas(schemaDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading schemas: %w", err)
+	}
+
+	// Step 2: Validate schemas.
+	if err := ValidateSchemas(schemas); err != nil {
+		return nil, nil, fmt.Errorf("validating schemas: %w", err)
+	}
+
+	// Step 3: Load existing content types from DB.
+	existing, err := e.loadExisting(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading existing content types: %w", err)
+	}
+
+	existingMap := make(map[string]existingContentType, len(existing))
+	for _, ct := range existing {
+		existingMap[ct.Name] = ct
+	}
+
+	var allChanges []Change
+	var changedSchemas []ContentType
+
+	// Track which content types are new vs updated.
+	newTypeSet := make(map[string]bool)
+	updatedTypeSet := make(map[string]bool)
+
+	for _, loaded := range schemas {
+		ex, found := existingMap[loaded.Name]
+
+		if found && ex.SchemaHash == loaded.SchemaHash {
+			slog.Debug("schema unchanged, skipping", "content_type", loaded.Name)
+			continue
+		}
+
+		var existingCT *ContentType
+		if found {
+			ct := ContentType{
+				Name:        ex.Name,
+				DisplayName: ex.DisplayName,
+				Fields:      ex.Fields,
+				PublicRead:  ex.PublicRead,
+				SchemaHash:  ex.SchemaHash,
+			}
+			existingCT = &ct
+		}
+
+		changes := DiffSchema(loaded, existingCT)
+		if len(changes) > 0 {
+			allChanges = append(allChanges, changes...)
+			changedSchemas = append(changedSchemas, loaded)
+		} else {
+			// Hash changed but no structural diff; still update in content_types.
+			changedSchemas = append(changedSchemas, loaded)
+		}
+
+		if found {
+			updatedTypeSet[loaded.Name] = true
+		} else {
+			newTypeSet[loaded.Name] = true
+		}
+	}
+
+	// Step 4: Separate safe vs breaking.
+	var safeChanges, breakingChanges []Change
+	for _, c := range allChanges {
+		if c.Safe {
+			safeChanges = append(safeChanges, c)
+		} else {
+			breakingChanges = append(breakingChanges, c)
+		}
+	}
+
+	result := &RefreshResult{}
+
+	// Step 5: Determine which changes to apply.
+	// Simplified logic: if any breaking changes exist and force=false,
+	// don't apply ANYTHING to avoid partial state inconsistency.
+	if len(breakingChanges) > 0 && !force {
+		// Block the entire refresh. Return the breaking changes but don't
+		// update the database or return updated schemas.
+		result.Breaking = breakingChanges
+		result.Applied = nil
+		slog.Warn("schema refresh blocked due to breaking changes",
+			"breaking", len(breakingChanges))
+		return result, nil, nil
+	}
+
+	// No breaking changes, or force=true: apply all changes.
+	if len(allChanges) > 0 || len(changedSchemas) > 0 {
+		if err := e.applyInTransaction(ctx, allChanges, changedSchemas); err != nil {
+			return nil, nil, fmt.Errorf("applying schema changes: %w", err)
+		}
+		result.Applied = allChanges
+	}
+
+	// Build new/updated type lists.
+	for name := range newTypeSet {
+		result.NewTypes = append(result.NewTypes, name)
+	}
+	for name := range updatedTypeSet {
+		result.UpdatedTypes = append(result.UpdatedTypes, name)
+	}
+
+	slog.Info("schema refresh completed",
+		"applied", len(result.Applied),
+		"breaking", len(result.Breaking),
+		"new_types", len(result.NewTypes),
+		"updated_types", len(result.UpdatedTypes),
+	)
+
+	return result, schemas, nil
+}
+
+
 // BreakingChangesError is returned when Apply detects breaking schema changes
 // and the engine is not in dev mode.
 type BreakingChangesError struct {

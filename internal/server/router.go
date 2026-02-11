@@ -45,6 +45,11 @@ type AuditHandler interface {
 	List(w http.ResponseWriter, r *http.Request)
 }
 
+// SchemaHandler defines the interface for schema management HTTP handlers.
+type SchemaHandler interface {
+	Refresh(w http.ResponseWriter, r *http.Request)
+}
+
 // Dependencies holds all injectable dependencies used by route handlers.
 type Dependencies struct {
 	DB             *database.DB
@@ -56,6 +61,7 @@ type Dependencies struct {
 	ContentHandler ContentHandler
 	MediaHandler   MediaHandler
 	AuditHandler   AuditHandler
+	SchemaHandler  SchemaHandler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -155,7 +161,11 @@ func NewRouter(deps Dependencies) chi.Router {
 			}
 
 			// Schema refresh.
-			r.Post("/schema/refresh", notImplemented)
+			if deps.SchemaHandler != nil {
+				r.Post("/schema/refresh", deps.SchemaHandler.Refresh)
+			} else {
+				r.Post("/schema/refresh", notImplemented)
+			}
 		})
 	})
 
