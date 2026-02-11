@@ -45,6 +45,12 @@ type AuditHandler interface {
 	List(w http.ResponseWriter, r *http.Request)
 }
 
+// ContentTypeHandler defines the interface for content type introspection HTTP handlers.
+type ContentTypeHandler interface {
+	List(w http.ResponseWriter, r *http.Request)
+	Get(w http.ResponseWriter, r *http.Request)
+}
+
 // SchemaHandler defines the interface for schema management HTTP handlers.
 type SchemaHandler interface {
 	Refresh(w http.ResponseWriter, r *http.Request)
@@ -60,8 +66,9 @@ type Dependencies struct {
 	AuthMiddleware func(http.Handler) http.Handler
 	ContentHandler ContentHandler
 	MediaHandler   MediaHandler
-	AuditHandler   AuditHandler
-	SchemaHandler  SchemaHandler
+	AuditHandler       AuditHandler
+	SchemaHandler      SchemaHandler
+	ContentTypeHandler ContentTypeHandler
 }
 
 // NewRouter builds the chi router with the full route tree, middleware stack,
@@ -120,8 +127,13 @@ func NewRouter(deps Dependencies) chi.Router {
 			}
 
 			// Content type introspection.
-			r.Get("/content-types", notImplemented)
-			r.Get("/content-types/{name}", notImplemented)
+			if deps.ContentTypeHandler != nil {
+				r.Get("/content-types", deps.ContentTypeHandler.List)
+				r.Get("/content-types/{name}", deps.ContentTypeHandler.Get)
+			} else {
+				r.Get("/content-types", notImplemented)
+				r.Get("/content-types/{name}", notImplemented)
+			}
 
 			// Content CRUD.
 			r.Route("/content/{contentType}", func(r chi.Router) {

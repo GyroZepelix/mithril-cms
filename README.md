@@ -21,8 +21,9 @@ Currently implemented:
 - Content CRUD API (dynamic SQL generation, validation for all 12 field types, pagination/filtering/sorting)
 - Full-text search integration (PostgreSQL tsvector, ranked results with highlights)
 - Media upload system (image variant generation, MIME validation, security headers, path traversal protection)
+- Content type introspection API (list all types, get single type with full field definitions and entry counts)
 
-Pending: Audit logging, schema refresh endpoint, content type introspection API, admin UI. See `spec/SPEC.md` for the full planned specification.
+Pending: Audit logging, admin UI. See `spec/SPEC.md` for the full planned specification.
 
 ## Tech Stack
 
@@ -50,6 +51,8 @@ mithril-cms/
 │   ├── content/          # Dynamic content CRUD, validation, query builder
 │   ├── search/           # Full-text search with PostgreSQL tsvector
 │   ├── media/            # Media upload, image processing, file serving
+│   ├── contenttypes/     # Content type introspection API
+│   ├── schemaapi/        # Schema refresh API
 │   └── audit/            # Audit logging system (pending implementation)
 ├── migrations/           # SQL migration files (system tables)
 ├── schema/               # YAML content type definitions
@@ -118,7 +121,7 @@ make lint    # Run go vet (and golangci-lint if installed)
 make clean   # Remove build artifacts
 ```
 
-**Note:** The following API routes are now functional: authentication (`/admin/api/auth/*`), content CRUD (`/api/{content-type}`, `/admin/api/content/{content-type}`), and media upload/serving (`/admin/api/media`, `/media/{filename}`). Pending routes: audit log, content type introspection, and schema refresh.
+**Note:** The following API routes are now functional: authentication (`/admin/api/auth/*`), content type introspection (`/admin/api/content-types`, `/admin/api/content-types/{name}`), content CRUD (`/api/{content-type}`, `/admin/api/content/{content-type}`), media upload/serving (`/admin/api/media`, `/media/{filename}`), and schema refresh (`/admin/api/schema/refresh`). Pending route: audit log.
 
 ## License
 

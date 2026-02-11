@@ -22,6 +22,7 @@ import (
 	"github.com/GyroZepelix/mithril-cms/internal/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/config"
 	"github.com/GyroZepelix/mithril-cms/internal/content"
+	"github.com/GyroZepelix/mithril-cms/internal/contenttypes"
 	"github.com/GyroZepelix/mithril-cms/internal/database"
 	"github.com/GyroZepelix/mithril-cms/internal/media"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
@@ -373,6 +374,9 @@ func runServe() {
 	contentService := content.NewService(contentRepo, schemaMap, auditService)
 	contentHandler := content.NewHandler(contentService, schemaMap)
 
+	// --- Set up content type introspection ---
+	contentTypeHandler := contenttypes.NewHandler(db.Pool(), schemaMap)
+
 	// --- Set up media ---
 	mediaStorage, err := media.NewLocalStorage(cfg.MediaDir)
 	if err != nil {
@@ -395,6 +399,7 @@ func runServe() {
 		}
 		contentService.UpdateSchemas(newMap)
 		contentHandler.UpdateSchemas(newMap)
+		contentTypeHandler.UpdateSchemas(newMap)
 	})
 
 	// --- Build router and start server ---
@@ -407,8 +412,9 @@ func runServe() {
 		AuthMiddleware: authMiddleware,
 		ContentHandler: contentHandler,
 		MediaHandler:   mediaHandler,
-		AuditHandler:   auditHandler,
-		SchemaHandler:  schemaHandler,
+		AuditHandler:       auditHandler,
+		SchemaHandler:      schemaHandler,
+		ContentTypeHandler: contentTypeHandler,
 	}
 
 	router := server.NewRouter(deps)
