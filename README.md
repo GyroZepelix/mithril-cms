@@ -126,6 +126,8 @@ See `spec/SPEC.md` for the full schema specification.
 
 ## API Reference
 
+> For full API documentation with request/response examples, query parameters, field types, and error codes, see **[USAGE.md](USAGE.md)**.
+
 ### Health
 
 | Method | Path      | Description        |
