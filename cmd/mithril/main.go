@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GyroZepelix/mithril-cms/admin"
 	"github.com/GyroZepelix/mithril-cms/internal/audit"
 	"github.com/GyroZepelix/mithril-cms/internal/auth"
 	"github.com/GyroZepelix/mithril-cms/internal/config"
@@ -408,6 +409,7 @@ func runServe() {
 		Engine:         engine,
 		Schemas:        schemas,
 		DevMode:        cfg.DevMode,
+		AdminFS:        admin.DistFS(),
 		AuthHandler:    authHandler,
 		AuthMiddleware: authMiddleware,
 		ContentHandler: contentHandler,

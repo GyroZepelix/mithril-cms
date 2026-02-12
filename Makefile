@@ -1,13 +1,21 @@
-.PHONY: build run test lint clean
+.PHONY: build build-admin build-all run test lint clean
 
 # Binary output name
 BINARY := mithril
 
-# Build the Go binary
+# Build the Go binary (without embedded admin SPA)
 build:
 	go build -o $(BINARY) ./cmd/mithril/
 
-# Run the server
+# Build the admin React SPA
+build-admin:
+	cd admin && npm ci && npm run build
+
+# Build everything: admin SPA + Go binary with embedded admin
+build-all: build-admin
+	go build -tags embed_admin -o $(BINARY) ./cmd/mithril/
+
+# Run the server (dev mode, no embed)
 run: build
 	./$(BINARY)
 
@@ -27,4 +35,5 @@ lint:
 # Remove build artifacts
 clean:
 	rm -f $(BINARY)
+	rm -rf admin/dist
 	go clean -cache -testcache

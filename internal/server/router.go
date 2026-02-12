@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io/fs"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -62,6 +63,7 @@ type Dependencies struct {
 	Engine         *schema.Engine
 	Schemas        []schema.ContentType
 	DevMode        bool
+	AdminFS        fs.FS // Embedded admin SPA filesystem (nil if not embedded).
 	AuthHandler    AuthHandler
 	AuthMiddleware func(http.Handler) http.Handler
 	ContentHandler ContentHandler
@@ -189,7 +191,7 @@ func NewRouter(deps Dependencies) chi.Router {
 	}
 
 	// --- SPA catch-all (must be last) ---
-	r.NotFound(newSPAHandler(deps.DevMode))
+	r.NotFound(newSPAHandler(deps.DevMode, deps.AdminFS))
 
 	return r
 }
