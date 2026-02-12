@@ -1,4 +1,10 @@
-.PHONY: build build-admin build-all run test lint clean
+.PHONY: build build-admin build-all run test testsum dev-up dev-down lint clean
+
+# Auto-load .env if present
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
 
 # Binary output name
 BINARY := mithril
@@ -22,6 +28,18 @@ run: build
 # Run all tests
 test:
 	go test -race -count=1 ./...
+
+# Run tests using gotestsum
+testsum:
+	gotestsum
+
+# Spin up containers needed to run dev mode
+dev-up:
+	docker compose -f docker-compose.dev.yml up -d
+
+# Spin down dev containers
+dev-down:
+	docker compose -f docker-compose.dev.yml down
 
 # Run linters (requires golangci-lint to be installed)
 lint:
