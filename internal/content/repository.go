@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/GyroZepelix/mithril-cms/internal/database"
 	"github.com/GyroZepelix/mithril-cms/internal/schema"
@@ -59,6 +60,31 @@ func searchableFields(fields []schema.Field) []schema.Field {
 		}
 	}
 	return result
+}
+
+// normalizeRow converts pgx-scanned UUID values ([16]byte or pgtype.UUID)
+// to their canonical string representation so JSON serialization works correctly.
+func normalizeRow(row map[string]any) map[string]any {
+	for k, v := range row {
+		switch val := v.(type) {
+		case [16]byte:
+			row[k] = fmt.Sprintf("%x-%x-%x-%x-%x", val[0:4], val[4:6], val[6:8], val[8:10], val[10:16])
+		case pgtype.UUID:
+			if val.Valid {
+				b := val.Bytes
+				row[k] = fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+			}
+		}
+	}
+	return row
+}
+
+// normalizeRows applies normalizeRow to each entry in a slice.
+func normalizeRows(rows []map[string]any) []map[string]any {
+	for i := range rows {
+		normalizeRow(rows[i])
+	}
+	return rows
 }
 
 // List retrieves a paginated list of content entries with optional filtering and sorting.
@@ -159,7 +185,7 @@ func (r *Repository) List(ctx context.Context, tableName string, fields []schema
 		return nil, 0, fmt.Errorf("scanning entries: %w", err)
 	}
 
-	return entries, total, nil
+	return normalizeRows(entries), total, nil
 }
 
 // GetByID retrieves a single content entry by UUID.
@@ -191,7 +217,7 @@ func (r *Repository) GetByID(ctx context.Context, tableName string, fields []sch
 		return nil, fmt.Errorf("scanning entry: %w", err)
 	}
 
-	return entry, nil
+	return normalizeRow(entry), nil
 }
 
 // Insert creates a new content entry and returns the full row.
@@ -243,7 +269,7 @@ func (r *Repository) Insert(ctx context.Context, tableName string, fields []sche
 		return nil, fmt.Errorf("scanning inserted entry: %w", err)
 	}
 
-	return entry, nil
+	return normalizeRow(entry), nil
 }
 
 // Update modifies an existing content entry and returns the full updated row.
@@ -300,7 +326,7 @@ func (r *Repository) Update(ctx context.Context, tableName string, fields []sche
 		return nil, fmt.Errorf("scanning updated entry: %w", err)
 	}
 
-	return entry, nil
+	return normalizeRow(entry), nil
 }
 
 // Publish sets an entry's status to 'published' and published_at to now().
@@ -332,5 +358,5 @@ func (r *Repository) Publish(ctx context.Context, tableName string, fields []sch
 		return nil, fmt.Errorf("scanning published entry: %w", err)
 	}
 
-	return entry, nil
+	return normalizeRow(entry), nil
 }

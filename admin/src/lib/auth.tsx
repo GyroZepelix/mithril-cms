@@ -62,13 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const result = await api.post<{ access_token: string; admin: Admin }>(
+      const result = await api.post<{ access_token: string }>(
         "/admin/api/auth/login",
         { email, password },
       );
       setAccessToken(result.access_token);
-      setState({ status: "authenticated", admin: result.admin });
+      const admin = await api.get<Admin>("/admin/api/auth/me");
+      setState({ status: "authenticated", admin });
     } catch (err) {
+      setAccessToken(null);
       if (err instanceof ApiRequestError) {
         throw err;
       }

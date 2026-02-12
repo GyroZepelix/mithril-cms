@@ -14,7 +14,7 @@ export function Header() {
   const breadcrumb = buildBreadcrumb(location.pathname);
 
   const adminEmail =
-    state.status === "authenticated" ? state.admin.email : "";
+    state.status === "authenticated" ? state.admin?.email ?? "" : "";
 
   return (
     <header className="flex h-14 items-center justify-between border-b px-6">
