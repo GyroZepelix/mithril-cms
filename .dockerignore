@@ -1,0 +1,10 @@
+admin/node_modules
+admin/dist
+.git
+*.md
+spec/
+media/
+Dockerfile
+docker-compose.yml
+Makefile
+.env*

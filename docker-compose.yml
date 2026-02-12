@@ -1,22 +1,42 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: the-mithril-postgres
-    restart: unless-stopped
+  mithril:
+    build: .
     ports:
-      - "5432:5432"
+      - "8080:8080"
     environment:
-      POSTGRES_USER: mithril
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mithril
+      MITHRIL_DATABASE_URL: postgres://mithril:mithril@db:5432/mithril?sslmode=disable
+      MITHRIL_JWT_SECRET: ${MITHRIL_JWT_SECRET:?Set MITHRIL_JWT_SECRET in .env or environment}
+      MITHRIL_ADMIN_EMAIL: ${MITHRIL_ADMIN_EMAIL:-admin@example.com}
+      MITHRIL_ADMIN_PASSWORD: ${MITHRIL_ADMIN_PASSWORD:-admin123456}
+      MITHRIL_DEV_MODE: "false"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./schema:/schema:ro
+      - media_data:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "terminal_user"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mithril
+      POSTGRES_PASSWORD: mithril
+      POSTGRES_DB: mithril
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mithril"]
+      interval: 5s
+      timeout: 3s
       retries: 5
+    # PostgreSQL is only accessible via Docker networking (not exposed to host).
+    # For debugging, use: docker compose exec db psql -U mithril
 
 volumes:
-  postgres_data:
-    driver: local
+  pg_data:
+  media_data:

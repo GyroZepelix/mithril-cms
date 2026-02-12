@@ -15,6 +15,7 @@ mithril
 # Environment files
 .env
 .env.*
+!.env.example
 
 # Media uploads
 media/
